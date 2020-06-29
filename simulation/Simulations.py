@@ -23,12 +23,12 @@ class Environment:
         self.S.addSensor("kitchen_camera")
         self.S.addSensor("table_camera")
 
-    def add_dyna_mass(self):
+    def add_dyna_mass(self, mass):
         for frame_name in self.RealWorld.getFrameNames():
             if "dyna_" in frame_name:
-                print("Mass of ", frame_name, "set to 10.0 kgs")
+                print("Mass of ", frame_name, "set to", mass, " kgs")
                 dyna_obj = self.RealWorld.frame(frame_name)
-                dyna_obj.setMass(10.0)
+                dyna_obj.setMass(mass)
 
     def set_contact(self,frame_name):
         obj = self.RealWorld.frame(frame_name)
