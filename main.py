@@ -270,7 +270,7 @@ if __name__ == '__main__':
         order = order_obj.receive_order_user()
 
         kitchen_cam = CV_Perception(env, "kitchen_camera")
-        print(ItemColor(int(order)))
+        #print(ItemColor(int(order)))
         target = kitchen_cam.get_target_pos(ItemColor(int(order)))
         print(target)
         print(env.get_position("dyna_coffe_mug"))

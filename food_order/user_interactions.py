@@ -13,7 +13,7 @@ class user_order():
         print("1 - Coffee\n2 - Sprite\n3 - Cola")
 
         done = False
-        order = []
+        order_list = []
 
         while done == False:
             order = input("Enter item number to order : ")
@@ -22,12 +22,12 @@ class user_order():
 
             if int_order > 0 and int_order <= len(Items):
                 print("Entered order : ", Items(int_order).name)
-                order.append(int_order)
+                order_list.append(int_order)
                 another = input("Do you want to order more: y/n")
                 if another == 'n':
-                    done
+                    done = True
 
             else:
                 print("Invalid item number")
 
-        return int_order
+        return order_list
