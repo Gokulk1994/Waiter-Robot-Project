@@ -26,8 +26,8 @@ class KomoOperations:
 
         komo = self.C.komo_path(1., self.position_steps, self.tau, True)
         komo.clearObjectives()
-        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq);
-        komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq);
+        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq)
+        komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq)
 
         return komo
 
