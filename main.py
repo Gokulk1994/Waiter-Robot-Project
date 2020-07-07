@@ -7,7 +7,7 @@ import time
 
 from food_order.user_interactions import user_order
 from perception.cv_operations import CV_Perception
-from optimization.komo_optimization import KomoOperations
+from optimization.komo_optimization import KooOperations
 from simulation.Simulations import Environment
 from enumeration.enum_classes import *
 
