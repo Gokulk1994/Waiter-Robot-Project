@@ -12,17 +12,17 @@ class State(enum.Enum):
 
 
 class Items(enum.Enum):
-    Cola = 1
-    Pepsi = 2
-    Coffee = 3
+    Coffee = 1
+    Sprite = 2
+    Cola = 3
 
 
 class ItemColor(enum.Enum):
     Red = 1
-    Blue = 2
-    White = 3
-    Green = 4
-    Black = 5
+    Green = 2
+    Black = 3
+    White = 4
+    Blue = 5
     Yellow = 6
 
 

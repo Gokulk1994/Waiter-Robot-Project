@@ -11,6 +11,14 @@ from optimization.komo_optimization import KomoOperations
 from simulation.Simulations import Environment
 from enumeration.enum_classes import *
 
+model_path = "models/Restaurant.g"
+env = Environment(model_path)
+S = env.S
+C = env.C
+RealWorld = env.RealWorld
+V = env.V
+[start_R_gripper_pos,J] = C.evalFeature(ry.FS.position, ["R_gripper"])
+[start_grip_quat,J] = C.evalFeature(ry.FS.quaternion, ["R_gripperCenter"])
 
 def finite_state_machine():
     pass
@@ -131,20 +139,130 @@ def run_empty_steps(S, num_iter=20, tau=0.001):
         time.sleep(0.05)
         S.step(S.get_q(), 0.001, ry.ControlMode.position)
 
+def grab_and_place(object_name, tray_pos):
+    global S,C,V,RealWorld
+    tau = 0.005
+    target_object = object_name
+    countbreak = 0
+    sim_glass = RealWorld.frame(target_object)
+    config_glass = C.getFrame(target_object)
+
+    cup_pos = config_glass.getPosition() + [0.08, 0, 0]
+
+    target_pos = tray_pos
+    count = 11
+    steps = 1
+    closed = 0
+    position_steps = 8
+    komo_op = KomoOperations(env.C, position_steps, tau)
+    for t in range(170):
+        # time.sleep(0.1)
+        S.getGripperIsGrasping("R_gripper")
+        # grab sensor readings from the simulation
+        q = S.get_q()
+        p_glass = sim_glass.getPosition()
+        r_glass = sim_glass.getQuaternion()
+        config_glass.setPosition(p_glass)
+        config_glass.setQuaternion(r_glass)
+        V.recopyMeshes(C)
+        V.setConfiguration(C)
+
+        if not S.getGripperIsGrasping("R_gripper"):
+            [y, J] = C.evalFeature(ry.FS.position, ["R_gripper"])
+            distance = np.linalg.norm(y - cup_pos)
+            # print(distance)
+            if distance < 0.06 and count > 10 and closed == 0:
+                closed = 1
+                # print(S.getGripperWidth("R_gripper"))
+                S.closeGripper("R_gripper")
+                print("graspping", t)
+                print(S.getGripperWidth("R_gripper"))
+        else:
+            # print("while closing ",S.getGripperWidth("R_gripper"))
+            [y, J] = C.evalFeature(ry.FS.position, ["R_gripper"])
+            distance = np.linalg.norm(y - target_pos)
+            # print(distance)
+            count += 1
+            if distance < 0.06 and count > 10 and closed == 1:
+                S.openGripper("R_gripper")
+                print("opening")
+                closed = 2
+
+        if closed == 0:
+            position_steps = 8
+            print("move to object called")
+            # komo = move_to_position("R_gripperCenter", [1.83, -1.23, 0.80])
+            komo = komo_op.check_move_to_pos_close("R_gripperCenter", cup_pos, [],position_steps)
+        elif closed == 1 and S.getGripperIsGrasping("R_gripper"):
+            [grip_quat, J] = C.evalFeature(ry.FS.quaternion, ["R_gripperCenter"])
+            position_steps = 8
+            komo = komo_op.check_move_to_pos_open("R_gripperCenter", target_pos, grip_quat,position_steps)
+            # v1 = komo.view()
+            # v1.playVideo()
+
+        if closed == 0 or (closed == 1 and S.getGripperIsGrasping("R_gripper")):
+            for i in range(position_steps):
+                time.sleep(2)
+                print(i)
+                C.setFrameState(komo.getConfiguration(i))
+                # V.setConfiguration(C)
+                # V.recopyMeshes(C)
+                q = C.getJointState()
+                S.step(q, tau, ry.ControlMode.position)
+            # V.setConfiguration(C)
+            # V.recopyMeshes(C)
+        else:
+            countbreak += 1
+            S.step(q, tau, ry.ControlMode.position)
+            if countbreak > 10:
+                break
+
+
+
+def move_back(position_steps,target_object,target_pos):
+    global S, C, V, RealWorld
+    target_pos = start_R_gripper_pos
+    tau  = 0.005
+    state = 0
+    komo_op = KomoOperations(env.C, position_steps, tau)
+    sim_glass = RealWorld.frame(target_object)
+    config_glass = C.getFrame(target_object)
+    for t in range(50):
+        #time.sleep(0.1)
+        #grab sensor readings from the simulation
+        q = S.get_q()
+        p_glass = sim_glass.getPosition()
+        r_glass = sim_glass.getQuaternion()
+        config_glass.setPosition(p_glass)
+        config_glass.setQuaternion(r_glass)
+        V.recopyMeshes(C)
+        V.setConfiguration(C)
+        [y,J] = C.evalFeature(ry.FS.position, ["R_gripperCenter"])
+        if state != 1:
+            [start_grip_quat,J] = C.evalFeature(ry.FS.quaternion, ["R_gripperCenter"])
+            komo = komo_op.move_back_position("R_gripperCenter", p_glass+[0,0.3,0], start_grip_quat,position_steps)
+            for i in range(position_steps):
+                time.sleep(2)
+                print(i)
+                C.setFrameState( komo.getConfiguration(i))
+                q = C.getJointState()
+                S.step(q, tau, ry.ControlMode.position)
+            state=1
+        else:
+            S.step(q, tau, ry.ControlMode.position)
 
 if __name__ == '__main__':
     state = State.Load_env
 
     # create environment
-    model_path = "models/Restaurant.g"
-    env = Environment(model_path)
+
 
     # set mass of dynamic objects
     env.add_dyna_mass(100.0)
 
     # receive order
 
-    user_ip = False
+    user_ip = True
 
     # Activate Kitchen camera
     if user_ip:
@@ -164,14 +282,39 @@ if __name__ == '__main__':
 
     fingers_opt = ['R_finger1','R_finger2']
 
+    tau = .005
+    target_object = "dyna_coffe_mug"
+    target_pos = np.array([2.15, 2.1, 0.783])
+
+    grab_and_place(target_object, target_pos)
+
+    position_steps = 5
+    move_back(position_steps, target_object,target_pos )
+
+    position_steps = 8
+    target_object = "green_glass"
+    target_pos = np.array([1.9, 2.1, 0.783])
+
+    grab_and_place(target_object, target_pos)
+
+    position_steps = 5
+    move_back(position_steps, target_object,target_pos)
+
+    print("press any key to exit")
+    while True:
+        key = input()
+        if key:
+            break
+
+
+"""
+
     if target is not None:
         print("moving to cup")
-        target_vector = [[0, -1, 0],
-                         ["None"],
-                         [1, 0, 0]
-                         ]
+        target_vector = [[0, -1, 0], ["None"], [1, 0, 0]]
         status, env_new = panda_to_item(env, "R_gripper", "R_gripperCenter", target, "dyna_coffe_mug", target_vector, True, fingers_opt)
-    '''
+"""
+"""  
     if status == True:
         print("moving to tray")
         target_vector = [[1, 0, 0],
@@ -181,14 +324,8 @@ if __name__ == '__main__':
         target = env.get_position("tray")
         target += [0,0,0.12]
         status, env_new_1 = panda_to_item(env_new, "R_gripper", "R_gripperCenter", target, "dyna_coffe_mug",target_vector, False)
-    '''
+"""
 
 
-    print("object gripping status :", status)
-    print("press any key to exit")
-    while True:
-        key = input()
-        if key:
-            break
 
     # get_order_panda(env.S, env.V, env.C, env.RealWorld)

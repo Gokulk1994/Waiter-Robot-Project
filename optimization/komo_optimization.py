@@ -12,6 +12,10 @@ class KomoOperations:
         [self.base_pos, J] = self.C.evalFeature(ry.FS.position, ["base_footprint"])
         [self.start_pr2L_pos, J] = self.C.evalFeature(ry.FS.position, ["pr2L"])
         [self.start_pr2R_pos, J] = self.C.evalFeature(ry.FS.position, ["pr2R"])
+        [self.start_qItself, J]  = self.C.evalFeature(ry.FS.qItself, [])
+        [self.start_endeffwork_pos, J] = self.C.evalFeature(ry.FS.position, ["endeffWorkspace"])
+        [self.start_R_gripper_pos, J] = self.C.evalFeature(ry.FS.position, ["R_gripper"])
+        [self.start_grip_quat, J] = self.C.evalFeature(ry.FS.quaternion, ["R_gripperCenter"])
 
         self.position_steps = position_steps
         self.tau = tau
@@ -71,11 +75,106 @@ class KomoOperations:
             for finger in fingers_opt:
                 komo_final.addObjective([], ry.FS.qItself, [finger], ry.OT.eq, [1e1], order=1)
 
-        if optimize:
-            komo_final.optimize()
+
+        komo_final.optimize()
         print("komo opt time ", (time.time() - start_time))
         return komo_final
 
-    def komo_optimize(self, komo):
+
+    def check_move_to_pos_close(self, gripper, position, targetQuat, position_steps=8, useQuat=False, align=True):
+        komo = self.C.komo_path(1., position_steps, self.tau, True)
+        komo.clearObjectives()
+        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq);
+        # komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq);
+        komo.addObjective([0., .25], ry.FS.position, [gripper], ry.OT.eq, [1e3], target=position + [0.6, 0, 0])
+        komo.addObjective([.25, .5], ry.FS.position, [gripper], ry.OT.eq, [1e3], target=position + [0.3, 0, 0])
+        komo.addObjective([.5, .75], ry.FS.position, [gripper], ry.OT.eq, [1e3], target=position + [0.2, 0, 0])
+        komo.addObjective([0.75, 1.], ry.FS.position, [gripper], ry.OT.eq, [1e3], target=position)
+
+        if useQuat:
+            komo.addObjective([], ry.FS.quaternion, [gripper], ry.OT.eq, [1e1], target=targetQuat)
+
+        if align:
+            komo.addObjective([], ry.FS.vectorZ, [gripper], ry.OT.eq, [1e2], target=[1, 0, 0])
+            komo.addObjective([], ry.FS.vectorX, [gripper], ry.OT.eq, [1e2], target=[0, -1, 0])
+
+        komo.addObjective(time=[1.], feature=ry.FS.qItself, type=ry.OT.eq, order=1)
+
+        komo.addObjective([], ry.FS.qItself, ['R_finger1'], ry.OT.eq, [1e1], order=1)
+        komo.addObjective([], ry.FS.qItself, ['R_finger2'], ry.OT.eq, [1e1], order=1)
+
+        komo.addObjective([], ry.FS.position, ['base_footprint'], ry.OT.eq, [1e2], target=self.base_pos)
+        komo.addObjective([], ry.FS.position, ['pr2L'], ry.OT.eq, [1e2], target=self.start_pr2L_pos)
+        komo.addObjective([], ry.FS.position, ['pr2R'], ry.OT.eq, [1e2], target=self.start_pr2R_pos)
+        komo.addObjective([], ry.FS.position, ['endeffWorkspace'], ry.OT.eq, [1e2], target=self.start_endeffwork_pos)
         komo.optimize()
         return komo
+
+    def check_move_to_pos_open(self,gripper, position, targetQuat, position_steps=8, align=True, useQuat=False):
+        komo = self.C.komo_path(1., position_steps, self.tau, True)
+        komo.clearObjectives()
+        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq);
+        komo.addObjective([0., .25], ry.FS.position, [gripper], ry.OT.eq, [1e3], target=position + [0, 0.4, 0.1])
+        komo.addObjective([.25, .5], ry.FS.position, [gripper], ry.OT.eq, [1e3], target=position + [0, 0.3, 0.05])
+        komo.addObjective([.5, .75], ry.FS.position, [gripper], ry.OT.eq, [1e3], target=position + [0, 0.2, 0.04])
+        komo.addObjective([.75, 1], ry.FS.position, [gripper], ry.OT.eq, [1e3], target=position)
+        if useQuat:
+            komo.addObjective([], ry.FS.quaternion, [gripper], ry.OT.eq, [1e1], target=targetQuat)
+
+        if align:
+            komo.addObjective([], ry.FS.vectorZ, [gripper], ry.OT.eq, [1e2], target=[0, 1, 0])
+            komo.addObjective([], ry.FS.vectorX, [gripper], ry.OT.eq, [1e2], target=[1, 0, 0])
+
+        komo.addObjective(time=[1.], feature=ry.FS.qItself, type=ry.OT.eq, order=1)
+        komo.addObjective([], ry.FS.qItself, ['R_finger1'], ry.OT.eq, [1e1], order=1)
+        komo.addObjective([], ry.FS.qItself, ['R_finger2'], ry.OT.eq, [1e1], order=1)
+        komo.addObjective([], ry.FS.position, ['base_footprint'], ry.OT.eq, [1e2], target=self.base_pos)
+        komo.addObjective([], ry.FS.position, ['pr2L'], ry.OT.eq, [1e2], target=self.start_pr2L_pos)
+        komo.addObjective([], ry.FS.position, ['pr2R'], ry.OT.eq, [1e2], target=self.start_pr2R_pos)
+        komo.addObjective([], ry.FS.qItself, ["torso_lift_joint"], type=ry.OT.eq, order=1)
+        komo.optimize()
+        return komo
+
+    def move_back_position(self, gripper, position, targetQuat, position_steps, align=True):
+        [open_finger_1, J] = self.C.evalFeature(ry.FS.qItself, ["R_finger1"])
+        [open_finger_2, J] = self.C.evalFeature(ry.FS.qItself, ["R_finger2"])
+        komo = self.C.komo_path(1., position_steps, self.tau, True)
+        komo.clearObjectives()
+        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq);
+        komo.addObjective(time=[.25, 1.], feature=ry.FS.qItself, type=ry.OT.eq, target=self.start_qItself)
+        komo.addObjective(time=[1.], feature=ry.FS.qItself, type=ry.OT.eq, order=1)
+        if align:
+            komo.addObjective([0., 0.25], ry.FS.vectorZ, [gripper], ry.OT.eq, [1e2], target=[0, 1, 0])
+            komo.addObjective([0., 0.25], ry.FS.vectorX, [gripper], ry.OT.eq, [1e2], target=[1, 0, 0])
+            komo.addObjective([0., .25], ry.FS.position, [gripper], ry.OT.eq, [1e3], target=position)
+            komo.addObjective([0, .25], ry.FS.qItself, ['R_finger1'], ry.OT.eq, target=open_finger_1)
+            komo.addObjective([0, .25], ry.FS.qItself, ['R_finger2'], ry.OT.eq, target=open_finger_2)
+        komo.addObjective([], ry.FS.position, ['base_footprint'], ry.OT.eq, [1e2], target=self.base_pos)
+        komo.addObjective([], ry.FS.position, ['pr2L'], ry.OT.eq, [1e2], target=self.start_pr2L_pos)
+        komo.addObjective([], ry.FS.position, ['pr2R'], ry.OT.eq, [1e2], target=self.start_pr2R_pos)
+        komo.addObjective([], ry.FS.position, ['endeffWorkspace'], ry.OT.eq, [1e2], target=self.start_endeffwork_pos)
+        komo.addObjective([], ry.FS.qItself, ['torso_lift_joint'], ry.OT.eq, [1e1], order=1)
+        komo.optimize()
+        return komo
+"""
+    def move_back_position(self, gripper, position, targetQuat, position_steps, align=True):
+        komo = self.C.komo_path(1., position_steps, self.tau, True)
+        komo.clearObjectives()
+        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq);
+        komo.addObjective(time=[.25, 1.], feature=ry.FS.qItself, type=ry.OT.eq, target=self.start_qItself)
+        komo.addObjective(time=[1.], feature=ry.FS.qItself, type=ry.OT.eq, order=1)
+        if align:
+            komo.addObjective([0., 0.25], ry.FS.vectorZ, [gripper], ry.OT.eq, [1e2], target=[0, 1, 0])
+            komo.addObjective([0., 0.25], ry.FS.vectorX, [gripper], ry.OT.eq, [1e2], target=[1, 0, 0])
+            komo.addObjective([0., .25], ry.FS.position, [gripper], ry.OT.eq, [1e3], target=self.glass_pos + [0, 0.3, 0])
+            komo.addObjective([0, .25], ry.FS.qItself, ['R_finger1'], ry.OT.eq, target=self.open_finger_1)
+            komo.addObjective([0, .25], ry.FS.qItself, ['R_finger2'], ry.OT.eq, target=self.open_finger_2)
+        komo.addObjective([], ry.FS.position, ['base_footprint'], ry.OT.eq, [1e2], target=self.base_pos)
+        komo.addObjective([], ry.FS.position, ['pr2L'], ry.OT.eq, [1e2], target=self.start_pr2L_pos)
+        komo.addObjective([], ry.FS.position, ['pr2R'], ry.OT.eq, [1e2], target=self.start_pr2R_pos)
+        komo.addObjective([], ry.FS.position, ['endeffWorkspace'], ry.OT.eq, [1e2], target=self.satrt_endeffwork_pos)
+        komo.addObjective([], ry.FS.qItself, ['torso_lift_joint'], ry.OT.eq, [1e1], order=1)
+        # komo.addObjective([], ry.FS.transVelocities, ['torso_lift_joint'], ry.OT.eq, [1e1], order=1)
+        komo.optimize()
+        return komo
+"""

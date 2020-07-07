@@ -4,6 +4,7 @@ import numpy as np
 
 
 def get_hsv_values(color):
+    print(color)
     if color == ItemColor.Red:
         hsv_color = [
             np.array([0, 120, 70]),
@@ -20,8 +21,9 @@ def get_hsv_values(color):
             np.array([20, 100, 100]),
             np.array([30, 255, 255]),
         ]
-    elif color == ItemColor.Blue:
-        pass
+    elif color == ItemColor.Green:
+        hsv_color = [np.array([50, 100, 100]),
+        np.array([70, 255, 255])]
     else:
         print("HSV for given color is not available")
         return False

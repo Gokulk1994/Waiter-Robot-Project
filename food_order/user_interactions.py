@@ -10,19 +10,24 @@ class user_order():
         print("Available Menu")
         print("Item # |   Item  ")
         print("-----------------")
-        print("1 - Cola\n2 - Pespi\n3 - Coffee")
+        print("1 - Coffee\n2 - Sprite\n3 - Cola")
 
         done = False
+        order = []
 
         while done == False:
             order = input("Enter item number to order : ")
 
-            try:
-                int_order = int(order)
-                if int_order > 0 and int_order <= len(Items):
-                    print("Entered order : ", Items(int_order).name)
-                    return int_order
-                else:
-                    print("Invalid item number")
-            except AssertionError as e:
-                raise (AssertionError("You have'nt entered valid an integer. Enter a valid item number"))
+            int_order = int(order)
+
+            if int_order > 0 and int_order <= len(Items):
+                print("Entered order : ", Items(int_order).name)
+                order.append(int_order)
+                another = input("Do you want to order more: y/n")
+                if another == 'n':
+                    done
+
+            else:
+                print("Invalid item number")
+
+        return int_order
