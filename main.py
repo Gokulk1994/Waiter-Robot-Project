@@ -404,9 +404,75 @@ def move_pr2_table(dest_pos, ref_objects):
     pr2_komo = KomoOperations(env.C)
     __move_pr2(pr2_komo, dest_pos, vector_target, start_tau_param, incr_tau_param, ref_objects)
 
+def table_cam_pos():
+    kitchen_cam = CV_Perception(env, "table_camera")
+
+    percept_red_table_pos = kitchen_cam.get_target_pos(ItemColor(1)) + [0.0231, -0.011, 0]
+    percept_red_table_pos[2] = 0
+
+    print(percept_red_table_pos)
+    print(env.get_position("coffe_table"))
+
+    percept_green_table_pos = kitchen_cam.get_target_pos(ItemColor(2)) + [0, -0.01, 0] + [0.82, -0.95, 0]
+    percept_green_table_pos[2] = 0
+
+    print(percept_green_table_pos)
+    print(env.get_position("coffe_table_1"))
+
+    return percept_red_table_pos, percept_green_table_pos
+
+
+def kitchen_camera_pos(table_1, table_2):
+    kitchen_cam = CV_Perception(env, "kitchen_camera")
+    # print(ItemColor(int(order)))
+    for i in table_1:
+        if i != Items.Invalid:
+            target = kitchen_cam.get_target_pos(ItemColor(i.value))
+            if target != []:
+                target += [0.067, 0, -0.013]
+                table_1_order.append(target)
+            else:
+                table_1_order.append(None)
+
+    for i in table_2:
+        if i != Items.Invalid:
+            target = kitchen_cam.get_target_pos(ItemColor(i.value))
+            if target != []:
+                target += [0.0477, 0.0065, -0.0312]
+                table_2_order.append(target)
+            else:
+                table_1_order.append(None)
+
+    cv.destroyAllWindows()
+    return table_1_order, table_2_order
+
+def get_kitchen_cam_pos(order, offset):
+    kitchen_cam = CV_Perception(env, "kitchen_camera")
+    order_pos = kitchen_cam.get_target_pos(ItemColor(order.value))
+
+    if order_pos != []:
+        order_pos += offset
+
+    return order_pos
+
+
+def teleport_obj(object_frame, position):
+    frame = RealWorld.getFrame(object_frame)
+    frame.setPosition(position)
+    S.setState(RealWorld.getFrameState())
+    S.step([], 0.001, ry.ControlMode.none)
 
 if __name__ == '__main__':
     state = State.Load_env
+
+    coffe_list  = ["dyna_coffee_1", "dyna_coffee_2", "dyna_coffee_3"]
+    sprite_list = ["sprite_1", "sprite_2", "sprite_3"]
+    cola_list   = ["cola_1", "cola_2", "cola_3"]
+
+    item_to_list_map =  { Items.Coffee : coffe_list,
+                          Items.Sprite : sprite_list,
+                          Items.Cola   : cola_list
+                        }
 
     # create environment
 
@@ -414,108 +480,85 @@ if __name__ == '__main__':
     env.add_dyna_mass(100.0)
 
     # receive order
-
     user_ip = True
-
-    # get gui order
-
-    table_1, table_2 = gui.get_order()
-
-    table_1_order = []
-    table_2_order = []
-
-    # Activate Kitchen camera
     if user_ip:
-
-        kitchen_cam = CV_Perception(env, "table_camera")
-
-        percept_red_table_pos = kitchen_cam.get_target_pos(ItemColor(1)) + [0.0231, -0.011, 0]
-        percept_red_table_pos[2] = 0
-
-        print(percept_red_table_pos)
-        print(env.get_position("coffe_table"))
-
-        percept_green_table_pos = kitchen_cam.get_target_pos(ItemColor(2)) + [0,-0.01, 0]
-        percept_green_table_pos[2] = 0
-
-        print(percept_green_table_pos)
-        print(env.get_position("coffe_table_1"))
-
-        kitchen_cam = CV_Perception(env, "kitchen_camera")
-        # print(ItemColor(int(order)))
-        for i in table_1:
-            target = kitchen_cam.get_target_pos(ItemColor(i.value)) + [0.067,0,-0.013]
-            table_1_order.append(target)
-        for i in table_2:
-            target = kitchen_cam.get_target_pos(ItemColor(i.value)) + [0.0477, 0.0065, -0.0312]
-            table_2_order.append(target)
-
-        cv.destroyAllWindows()
+        percept_red_table_pos, percept_green_table_pos = table_cam_pos()
     else:
         percept_green_table_pos = np.array([-0.18, -1.8, 0])
         percept_red_table_pos   = np.array([-0.18, 0.6, 0])
 
-    run_empty_steps(env.S, num_iter=20, tau=0.001)
-    # Pick an Object : Close gripper
-    percept_green_table_pos += [0.82, -0.95, 0]
-    print("green table pos :", percept_green_table_pos)
+    # get gui order
+    table_1, table_2 = gui.get_order()
+    table_1_order = []
+    table_2_order = []
 
-    fingers_opt = ['R_finger1', 'R_finger2']
+    for order_1, order_2 in zip(table_1, table_2):
+        if order_1 == Items.Invalid  and order_2 == Items.Invalid:
+            break
 
-    current_serving_objects = []
+        fingers_opt = ['R_finger1', 'R_finger2']
+        current_serving_objects = []
 
-    target_object = "dyna_coffe_mug"
-    current_serving_objects.append(target_object)
+        if order_1 != Items.Invalid:
+            order_red = item_to_list_map[order_1].pop(0)
+            teleport_obj(order_red, [1.4, 2.5, 0.63])
+            run_empty_steps(env.S, num_iter=20, tau=0.001)
+            table_1_order_pos = get_kitchen_cam_pos(order_1,[0.067, 0, -0.013])
 
-    target_pos = np.array([2.35, 2.1, 0.783])
-    # from perception
+        if order_2 != Items.Invalid:
+            order_green = item_to_list_map[order_2].pop(0)
+            teleport_obj(order_green, [1.6, 2.8, 0.6])
+            run_empty_steps(env.S, num_iter=20, tau=0.001)
+            table_2_order_pos = get_kitchen_cam_pos(order_2, [0.0477, 0.0065, -0.0312])
 
-    if user_ip:
-        object_pos = table_1_order[0]
-    else:
-        print("enable user input to get real world position")
-        config_glass = C.getFrame(target_object)
-        object_pos = config_glass.getPosition()
+        cv.destroyAllWindows()
 
+        run_empty_steps(env.S, num_iter=50, tau=0.001)
 
-    grab_from_shelf_arm(target_object, object_pos, target_pos)
-    gui.add_message("\nItem 1 placed on tray")
-    target_object = "green_glass"
-    current_serving_objects.append(target_object)
-    target_pos = np.array([2.14, 2.1, 0.77])
+        if order_1 != Items.Invalid:
+            target_object = order_red
+            current_serving_objects.append(target_object)
+            target_pos = np.array([2.35, 2.1, 0.783])
+            print("panda to order 1")
+            grab_from_shelf_arm(target_object, table_1_order_pos, target_pos)
+            gui.add_message("\nItem 1 placed on tray")
 
-    # from perception
-    if user_ip:
-        object_pos = table_2_order[0]
-    else:
-        print("enable user input to get real world position")
-        config_glass = C.getFrame(target_object)
-        object_pos = config_glass.getPosition()
+        if order_2 != Items.Invalid:
+            target_object = order_green
+            current_serving_objects.append(target_object)
+            target_pos = np.array([2.14, 2.1, 0.77])
+            print("panda to order 2")
+            grab_from_shelf_arm(target_object, table_2_order_pos, target_pos)
+            gui.add_message("\nItem 2 placed on tray")
 
-    grab_from_shelf_arm(target_object, object_pos, target_pos)
-    gui.add_message("\nItem 2 placed on tray")
-    # near red table position from perception
-    gui.add_message("\nThe dinner is on the way...")
-    move_pr2_table(percept_green_table_pos, current_serving_objects)
+        if order_1 != Items.Invalid or order_2 != Items.Invalid:
+            # near red table position from perception
+            gui.add_message("\nThe dinner is on the way...")
+            move_pr2_table(percept_green_table_pos, current_serving_objects)
 
-    # placing on dining table second item goes first if serving 2 items to same table
-    target_object = "green_glass"
-    config_glass = C.getFrame(target_object)
-    object_pos = config_glass.getPosition()
+            # placing on dining table second item goes first if serving 2 items to same table
+            target_object = order_green
+            config_glass = C.getFrame(target_object)
+            object_pos = config_glass.getPosition()
 
-    # from perception
-    target_pos = np.array([-1.2, -1, 0.639])
-    grab_from_green_arm(target_object, object_pos, target_pos)
+            # from perception
+            target_pos = np.array([-1.2, -1, 0.639])
+            grab_from_green_arm(target_object, object_pos, target_pos)
 
+            position_steps = 8
+            target_object = order_green
+            target_pos = np.array([1.9, 2.1, 0.783])
 
-    position_steps = 8
-    target_object = "green_glass"
-    target_pos = np.array([1.9, 2.1, 0.783])
+            # Move to red table and place red object in table  add code here
 
-    #grab_and_place(target_object, target_pos)
+            #grab_and_place(target_object, target_pos)
 
-    position_steps = 5
-    #move_back(position_steps, target_object, target_pos)
+            position_steps = 5
+            #move_back(position_steps, target_object, target_pos)
+
+            # return back pr2 to origin add code here
+
+        break # currently breaked at 1 iteration, will remove when pr2 move back to origin is implemented
 
     print("press any key to exit")
     while True:

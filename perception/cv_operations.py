@@ -11,8 +11,11 @@ def get_hsv_values(color):
             np.array([170, 120, 70]),
             np.array([180, 255, 255])
         ]
-    elif color == ItemColor.Blue:
-        pass
+    elif color == ItemColor.Black:
+        hsv_color = [
+            np.array([0, 0, 0]),
+            np.array([180, 255, 10]),
+        ]
     elif color == ItemColor.White:
         pass
     elif color == ItemColor.Yellow:
@@ -34,7 +37,6 @@ def show_images(image_list):
 
         for i in range(len(image_list)):
             if len(image_list[i].shape) < 3:
-                print(len(image_list[i].shape))
                 image_list[i] = cv.cvtColor(image_list[i], cv.COLOR_GRAY2BGR)
 
         op_img = np.hstack([x for x in image_list])
@@ -46,11 +48,28 @@ def show_images(image_list):
                 break
 
 
-def get_image_mask(hsv, hsv_values):
+def get_image_mask(hsv, hsv_values, vertices):
+    #blur = cv.GaussianBlur(hsv,(5,5),cv.BORDER_DEFAULT)
     mask = cv.inRange(hsv, hsv_values[0], hsv_values[1])
     if len(hsv_values) == 4:
         mask2 = cv.inRange(hsv, hsv_values[2], hsv_values[3])
         mask += mask2
+
+    while True:
+        cv.imshow('roi_mask', mask)
+
+        if cv.waitKey(1) & 0xFF == ord('q'):
+            break
+
+
+    if vertices is not None:
+        roi_mask = np.zeros_like(mask)
+        roi_mask = cv.fillPoly(roi_mask, vertices, (255, 255, 255))
+
+        mask = cv.bitwise_and(mask, roi_mask)
+
+
+
     return mask
 
 
@@ -76,6 +95,11 @@ class CV_Perception:
         self.V.recopyMeshes(self.C)
         self.V.setConfiguration(self.C)
 
+        if camera_name == "kitchen_camera":
+            self.vertices = np.array([[(120, 260), (180, 55), (350, 55), (530, 260)]], dtype=np.int32)
+        else:
+            self.vertices = None
+
     def set_point_clouds(self):
         [self.rgb, self.depth] = self.S.getImageAndDepth()
         self.points = self.S.depthData2pointCloud(self.depth, self.fxfypxpy)
@@ -91,20 +115,20 @@ class CV_Perception:
         hsv = cv.cvtColor(bgr, cv.COLOR_BGR2HSV)
 
         hsv_values = get_hsv_values(color)
-        hsv_mask = get_image_mask(hsv, hsv_values)
+        final_mask = get_image_mask(hsv, hsv_values, self.vertices)
 
-        contours, hierarchy = cv.findContours(hsv_mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-        segmented_image = cv.drawContours(bgr, contours, -1, (0, 255, 0), 2)
-        image_list = [bgr]
+        contours, hierarchy = cv.findContours(final_mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+        segmented_image = cv.drawContours(bgr, contours, -1, (0, 255, 255), 2)
+        image_list = [segmented_image]
 
         if show_img:
             show_images(image_list)
 
-        return self.get_mean_point_cloud(hsv_mask)
+        return self.get_mean_point_cloud(final_mask)
 
     def get_mean_point_cloud(self, mask):
         pc_coord = []
-        obj_position = None
+        obj_position = []
 
         if mask is not None:
             x, y = np.where(mask)

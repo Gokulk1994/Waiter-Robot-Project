@@ -62,7 +62,7 @@ class GuiInput:
 
         self.coffee['state'] = tk.NORMAL
         self.sprite['state'] = tk.NORMAL
-        #self.cola['state'] = tk.NORMAL
+        self.cola['state'] = tk.NORMAL
 
     def choose_table_2(self):
         self.table = 2
@@ -74,7 +74,7 @@ class GuiInput:
 
         self.coffee['state'] = tk.NORMAL
         self.sprite['state'] = tk.NORMAL
-        #self.cola['state'] = tk.NORMAL
+        self.cola['state'] = tk.NORMAL
 
     def add_message(self, message):
         self.display.insert(tk.END, message)
@@ -139,6 +139,13 @@ class GuiInput:
         self.master.quit()
 
     def get_order(self):
+
+        # fill empty list
+        while len(self.orders[1]) != 3:
+            self.orders[1].append(Items.Invalid)
+        while len(self.orders[2]) != 3:
+            self.orders[2].append(Items.Invalid)
+
         return self.orders[1], self.orders[2]
 
     def get_order_stat(self):
