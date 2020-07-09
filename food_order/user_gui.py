@@ -62,7 +62,7 @@ class GuiInput:
 
         self.coffee['state'] = tk.NORMAL
         self.sprite['state'] = tk.NORMAL
-        self.cola['state'] = tk.NORMAL
+        #self.cola['state'] = tk.NORMAL
 
     def choose_table_2(self):
         self.table = 2
@@ -74,10 +74,9 @@ class GuiInput:
 
         self.coffee['state'] = tk.NORMAL
         self.sprite['state'] = tk.NORMAL
-        self.cola['state'] = tk.NORMAL
+        #self.cola['state'] = tk.NORMAL
 
     def add_message(self, message):
-        print(message)
         self.display.insert(tk.END, message)
 
     def choose_coffee(self):
