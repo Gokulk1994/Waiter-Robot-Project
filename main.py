@@ -477,8 +477,9 @@ if __name__ == '__main__':
         config_glass = C.getFrame(target_object)
         object_pos = config_glass.getPosition()
 
-    grab_from_shelf_arm(target_object, object_pos, target_pos)
 
+    grab_from_shelf_arm(target_object, object_pos, target_pos)
+    gui.add_message("\nItem 1 placed on tray")
     target_object = "green_glass"
     current_serving_objects.append(target_object)
     target_pos = np.array([2.14, 2.1, 0.77])
@@ -492,9 +493,9 @@ if __name__ == '__main__':
         object_pos = config_glass.getPosition()
 
     grab_from_shelf_arm(target_object, object_pos, target_pos)
-
+    gui.add_message("\nItem 2 placed on tray")
     # near red table position from perception
-
+    gui.add_message("\nThe dinner is on the way...")
     move_pr2_table(percept_green_table_pos, current_serving_objects)
 
     # placing on dining table second item goes first if serving 2 items to same table
@@ -503,7 +504,7 @@ if __name__ == '__main__':
     object_pos = config_glass.getPosition()
 
     # from perception
-    target_pos =  np.array([-1.2, 0.7, 0.639])
+    target_pos = np.array([-1.2, -1, 0.639])
     grab_from_green_arm(target_object, object_pos, target_pos)
 
 
