@@ -4,7 +4,6 @@ import numpy as np
 
 
 def get_hsv_values(color):
-    print(color)
     if color == ItemColor.Red:
         hsv_color = [
             np.array([0, 120, 70]),
@@ -23,7 +22,7 @@ def get_hsv_values(color):
         ]
     elif color == ItemColor.Green:
         hsv_color = [np.array([50, 100, 100]),
-        np.array([70, 255, 255])]
+                     np.array([70, 255, 255])]
     else:
         print("HSV for given color is not available")
         return False
@@ -53,6 +52,10 @@ def get_image_mask(hsv, hsv_values):
         mask2 = cv.inRange(hsv, hsv_values[2], hsv_values[3])
         mask += mask2
     return mask
+
+
+def destroy_windows(self):
+    cv.destroyAllWindows()
 
 
 class CV_Perception:
@@ -119,3 +122,10 @@ class CV_Perception:
                 obj_position = self.cameraFrame.getRotationMatrix() @ mean_pc + self.cameraFrame.getPosition()
 
         return obj_position
+
+    def update_rgb_image(self):
+        [rgb, depth] = self.S.getImageAndDepth()
+        points = self.S.depthData2pointCloud(depth, self.fxfypxpy)
+        self.cameraFrame.setPointCloud(points, rgb)
+        self.V.recopyMeshes(self.C)
+        self.V.setConfiguration(self.C)
