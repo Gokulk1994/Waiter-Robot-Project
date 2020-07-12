@@ -13,7 +13,7 @@ from optimization.komo_optimization import KomoOperations
 from simulation.Simulations import Environment
 from enumeration.enum_classes import *
 
-import  cv2 as cv
+import cv2 as cv
 
 root = tk.Tk()
 gui = GuiInput(root)
@@ -32,8 +32,6 @@ S = env.S
 C = env.C
 RealWorld = env.RealWorld
 V = env.V
-[start_R_gripper_pos, J] = C.evalFeature(ry.FS.position, ["R_gripper"])
-[start_grip_quat, J] = C.evalFeature(ry.FS.quaternion, ["R_gripperCenter"])
 
 
 def finite_state_machine():
@@ -49,90 +47,6 @@ def simulate_obj_motion(env, sim, config):
 
     env.V.recopyMeshes(env.C)
     env.V.setConfiguration(env.C)
-
-
-def panda_to_item(env, gripper, gripper_cen, target_pos, target_object, vector_target, is_close, fingers_opt=None):
-    tau = .005
-
-    sim = env.RealWorld.frame(target_object)
-    config = env.C.getFrame(target_object)
-
-    komo_steps = 1
-    progress = ProgressState.Init
-    move_tray = False
-
-    for t in range(50):
-        print("-------------------------------------------")
-        print("time : ", t)
-        # time.sleep(0.01)
-
-        q = env.S.get_q()
-        simulate_obj_motion(env, sim, config)
-
-        if is_close:
-            Check_Conditon = not (env.S.getGripperIsGrasping(gripper))
-        else:
-            Check_Conditon = env.S.getGripperIsGrasping(gripper)
-
-        if Check_Conditon:
-            if progress == ProgressState.Init:
-                [grip_y, _] = env.C.evalFeature(ry.FS.position, [gripper])
-                distance = np.linalg.norm(target_pos - grip_y)
-                print("Distance to Goal : ", distance)
-                if distance < 0.06:
-
-                    print("Target position reached at :", t)
-                    if is_close:
-                        print("Gripper Closing in progress...")
-                        env.S.closeGripper(gripper)
-                    else:
-                        print("Gripper Opening in progress...")
-                        env.S.openGripper(gripper)
-
-                    progress = ProgressState.InProgress
-
-        else:
-            if progress == ProgressState.InProgress:
-                print("Gripper operation done")
-                progress = ProgressState.Finished
-            else:
-                print("gripper operation not performed")
-
-        if progress != ProgressState.Finished:
-            komo_op = KomoOperations(env.C, komo_steps, tau)
-            komo_optimized = komo_op.move_to_position(gripper_cen, target_pos, vector_target, fingers_opt)
-
-            for i in range(komo_steps):
-                print("Length of komo config", len(komo_optimized.getConfiguration(i)))
-                env.C.setFrameState(komo_optimized.getConfiguration(i))
-                q = env.C.getJointState()
-                env.S.step(q, tau, ry.ControlMode.position)
-        else:
-            if move_tray == False:
-                print("moving to tray")
-                vector_target = [[1, 0, 0],
-                                 ["None"],
-                                 [0, 1, 0]
-                                 ]
-                target_pos = env.get_position("tray")
-                target_pos += [0, 0, 0.12]
-                is_close = False
-                progress = ProgressState.Init
-                move_tray = True
-            else:
-                env.S.step(q, tau, ry.ControlMode.position)
-
-    if progress != ProgressState.Init:
-        # print(komo_optimized.getReport())
-
-        # env.V = komo_optimized.view()
-        # env.V.playVideo()
-        pass
-
-    if progress != ProgressState.Finished:
-        print("Insufficient Iterations. Process Terminated before Gripper is closed")
-        return False, env
-    return True, env
 
 
 def move_pr2_user():
@@ -157,23 +71,22 @@ def run_empty_steps(S, num_iter=20, tau=0.001):
         S.step(S.get_q(), 0.001, ry.ControlMode.position)
 
 
-def __grab_and_place(komo_op, object_name, object_pos, tray_pos, gripper_name, gripper_center,
-                   fingers_opt, offsets1, offsets2, vector_target1, vector_target2):
+def __grab_and_place(komo_op, object_name, object_pos, dest_pos, gripper_name, gripper_center,
+                     fingers_opt, offsets1, offsets2, vector_target1, vector_target2):
     global S, C, V, RealWorld
 
     tau = 0.005
-    target_object = object_name
     countbreak = 0
     sim_glass = RealWorld.frame(object_name)
     config_glass = C.getFrame(object_name)
     cup_pos = object_pos
 
-    target_pos = tray_pos
-    #kitchen_cam = CV_Perception(env, "kitchen_camera")
+    target_pos = dest_pos
+    # kitchen_cam = CV_Perception(env, "kitchen_camera")
     progress = ProgressState.Init
     position_steps = 8
     # komo_op = KomoOperations(env.C, position_steps, tau)
-    for t in range(170):
+    for t in range(700):
         # time.sleep(0.1)
         # grab sensor readings from the simulation
         q = S.get_q()
@@ -184,7 +97,7 @@ def __grab_and_place(komo_op, object_name, object_pos, tray_pos, gripper_name, g
 
         if t % 10 == 0:
             [rgb, depth] = S.getImageAndDepth()
-            #kitchen_cam.update_rgb_image()
+            # kitchen_cam.update_rgb_image()
 
         V.recopyMeshes(C)
         V.setConfiguration(C)
@@ -198,7 +111,7 @@ def __grab_and_place(komo_op, object_name, object_pos, tray_pos, gripper_name, g
                 # print(S.getGripperWidth("R_gripper"))
                 S.closeGripper(gripper_name)
                 print("graspping", t)
-                #print(S.getGripperWidth("R_gripper"))
+                # print(S.getGripperWidth("R_gripper"))
         else:
             [y, J] = C.evalFeature(ry.FS.position, [gripper_name])
             distance = np.linalg.norm(y - target_pos)
@@ -220,7 +133,8 @@ def __grab_and_place(komo_op, object_name, object_pos, tray_pos, gripper_name, g
             # v1 = komo.view()
             # v1.playVideo()
 
-        if progress == ProgressState.Init or (progress == ProgressState.Started and S.getGripperIsGrasping(gripper_name)):
+        if progress == ProgressState.Init or (
+                progress == ProgressState.Started and S.getGripperIsGrasping(gripper_name)):
             for i in range(position_steps):
                 time.sleep(2)
                 print(i)
@@ -233,9 +147,10 @@ def __grab_and_place(komo_op, object_name, object_pos, tray_pos, gripper_name, g
             # V.recopyMeshes(C)
         else:
             S.step(q, tau, ry.ControlMode.position)
-        if progress == ProgressState.InProgress and not S.getGripperIsGrasping(gripper_name) :
+        if progress == ProgressState.InProgress and not S.getGripperIsGrasping(gripper_name):
             countbreak += 1
             if countbreak > 30:
+                print("t", t)
                 break
 
 
@@ -252,12 +167,15 @@ def grab_from_shelf_arm(object_name, obj_pos, tray_pos):
                       ["None"],
                       [0, 1, 0]]
     # from perception
+    sim_glass = RealWorld.frame(object_name)
+    obj_pos = sim_glass.getPosition()
     obj_pos = obj_pos + [0.08, 0, 0]
     shelf_gripper_komo = KomoOperations(env.C)
     __grab_and_place(shelf_gripper_komo, object_name, obj_pos, tray_pos, gripper_name,
                      gripper_center, fingers_opt, offsets1, offsets2, vector_target1,
                      vector_target2)
-    move_back_shelf_arm(shelf_gripper_komo, target_object)
+    move_back_shelf_arm(shelf_gripper_komo, object_name)
+    # widen_gripper(gripper_name)
 
 
 def grab_from_green_arm(object_name, obj_pos, table_pos):
@@ -273,12 +191,39 @@ def grab_from_green_arm(object_name, obj_pos, table_pos):
     vector_target2 = [[1, 0, 0],
                       ["None"],
                       [0, -1, 0]]
-    obj_pos = obj_pos + [0, -0.08, 0]
+
+    sim_glass = RealWorld.frame(object_name)
+    # obj_pos = sim_glass.getPosition()
+    obj_pos = obj_pos + [0, -0.07, 0]
 
     green_gripper_komo = KomoOperations(env.C)
     __grab_and_place(green_gripper_komo, object_name, obj_pos, table_pos, gripper_name,
-                   gripper_center, fingers_opt, offsets1, offsets2, vector_target1, vector_target2)
-    move_back_green_arm(green_gripper_komo, target_object)
+                     gripper_center, fingers_opt, offsets1, offsets2, vector_target1, vector_target2)
+    move_back_green_arm(green_gripper_komo, object_name)
+
+
+def grab_from_red_arm(object_name, obj_pos, table_pos):
+    fingers_opt = ['L_finger1', 'L_finger2']
+    gripper_name = "L_gripper"
+    gripper_center = "L_gripperCenter"
+
+    offsets1 = [[0, -0.4, 0], [0, -0.3, 0], [0, -0.2, 0]]
+    offsets2 = [[0, -0.4, 0.1], [0, -0.3, 0.05], [0, -0.25, 0.05]]
+    vector_target1 = [[1, 0, 0],
+                      ["None"],
+                      [0, -1, 0]]
+    vector_target2 = [[1, 0, 0],
+                      ["None"],
+                      [0, -1, 0]]
+
+    sim_glass = RealWorld.frame(object_name)
+    # obj_pos = sim_glass.getPosition()
+    obj_pos = obj_pos + [0, -0.07, 0]
+
+    green_gripper_komo = KomoOperations(env.C)
+    __grab_and_place(green_gripper_komo, object_name, obj_pos, table_pos, gripper_name,
+                     gripper_center, fingers_opt, offsets1, offsets2, vector_target1, vector_target2)
+    move_back_red_arm(green_gripper_komo, object_name)
 
 
 def __move_back(komo_op, position_steps, reference_object, offset, gripper_center, fingers_opt, vector_target):
@@ -322,7 +267,18 @@ def move_back_green_arm(gripper_komo, reference_object):
                      ["None"],
                      [0, -1, 0]]
     __move_back(gripper_komo, 5, reference_object, offset, gripper_center,
-              fingers_opt, vector_target)
+                fingers_opt, vector_target)
+
+
+def move_back_red_arm(gripper_komo, reference_object):
+    fingers_opt = ['L_finger1', 'L_finger2']
+    gripper_center = "L_gripperCenter"
+    offset = [0, -0.3, 0]
+    vector_target = [[1, 0, 0],
+                     ["None"],
+                     [0, -1, 0]]
+    __move_back(gripper_komo, 5, reference_object, offset, gripper_center,
+                fingers_opt, vector_target)
 
 
 def move_back_shelf_arm(shelf_gripper_komo, reference_object):
@@ -352,7 +308,7 @@ def __update_config_reference(sim_obj1, config_obj1, sim_obj2, config_obj2):
 
 
 def __move_pr2(pr2_komo, dest_pos, vector_target, start_tau_param, incr_tau_param, ref_objects=[],
-             max_iterations=1500):
+               max_iterations=1500):
     print("moving pr2 to desired position")
     count_break = 0
     state = 0
@@ -376,7 +332,7 @@ def __move_pr2(pr2_komo, dest_pos, vector_target, start_tau_param, incr_tau_para
         __update_config_reference(sim_obj1, config_obj1, sim_obj2, config_obj2)
         [y, J] = C.evalFeature(ry.FS.position, ["base_footprint"])
         distance = np.linalg.norm(y - dest_pos)
-        #print(distance)
+        # print(distance)
         if distance < 0.8:
             state = 1
             count_break += 1
@@ -386,8 +342,8 @@ def __move_pr2(pr2_komo, dest_pos, vector_target, start_tau_param, incr_tau_para
             komo.optimize()
             C.setFrameState(komo.getConfiguration(0))
             q = C.getJointState()
-        # elif state == 1 and count_break > 9:
-        #     break
+        elif state == 1 and count_break > 50:
+            break
         S.step(q, tau, ry.ControlMode.position)
 
 
@@ -400,52 +356,59 @@ def move_pr2_table(dest_pos, ref_objects):
     vector_target = [[-1, 0, 0],
                      [0, -1, 0],
                      ["None"]]
-    start_tau_param = 0.0000001
+    start_tau_param = 0.00001
+    # start_tau_param = 0.001
     incr_tau_param = 0.0000005
     pr2_komo = KomoOperations(env.C)
     __move_pr2(pr2_komo, dest_pos, vector_target, start_tau_param, incr_tau_param, ref_objects)
 
+
+def widen_gripper(gripper):
+    print("widening gripper", S.getGripperWidth(gripper))
+    for i in range(100):
+        S.openGripper(gripper)
+        S.step(S.get_q(), 0.005, ry.ControlMode.position)
+        if abs(S.getGripperWidth(gripper)) > 0.015:
+            break
+
+
+def move_pr2_offset(offset, ref_objects):
+    [base_pos, J] = C.evalFeature(ry.FS.position, ["base_footprint"])
+    print("inside pr2 offset", base_pos)
+    dest_pos = base_pos + offset
+    move_pr2_table(dest_pos, ref_objects)
+    [base_pos, J] = C.evalFeature(ry.FS.position, ["base_footprint"])
+    print("after moving pr2 offset", base_pos)
+
+
+def move_pr2_shelf(dest_pos, ref_objects):
+    print("moving pr2 back to shelf")
+    vector_target = [[0, 1, 0],
+                     [-1, 0, 0],
+                     ["None"]]
+    start_tau_param = 0.001
+    incr_tau_param = 0
+    pr2_komo = KomoOperations(env.C)
+    __move_pr2(pr2_komo, dest_pos, vector_target, start_tau_param, incr_tau_param, ref_objects)
+
+
 def table_cam_pos():
     kitchen_cam = CV_Perception(env, "table_camera")
 
-    percept_red_table_pos = kitchen_cam.get_target_pos(ItemColor(1)) + [0.0231, -0.011, 0]
-    percept_red_table_pos[2] = 0
+    red_table_pos = kitchen_cam.get_target_pos(ItemColor(1)) + [0.0231, -0.011, 0]
+    red_table_pos[2] = 0
 
-    print(percept_red_table_pos)
+    print("red table with offset ", red_table_pos)
     print(env.get_position("coffe_table"))
 
-    percept_green_table_pos = kitchen_cam.get_target_pos(ItemColor(2)) + [0, -0.01, 0] + [0.82, -0.95, 0]
-    percept_green_table_pos[2] = 0
+    green_table_pos = kitchen_cam.get_target_pos(ItemColor(2)) + [0, -0.01, 0] + [0.82, -0.95, 0]
+    ## offset [0.82, -0.95, 0]
+    green_table_pos[2] = 0
 
-    print(percept_green_table_pos)
+    print("green table with offset", green_table_pos)
     print(env.get_position("coffe_table_1"))
 
-    return percept_red_table_pos, percept_green_table_pos
-
-
-def kitchen_camera_pos(table_1, table_2):
-    kitchen_cam = CV_Perception(env, "kitchen_camera")
-    # print(ItemColor(int(order)))
-    for i in table_1:
-        if i != Items.Invalid:
-            target = kitchen_cam.get_target_pos(ItemColor(i.value))
-            if target != []:
-                target += [0.067, 0, -0.013]
-                table_1_order.append(target)
-            else:
-                table_1_order.append(None)
-
-    for i in table_2:
-        if i != Items.Invalid:
-            target = kitchen_cam.get_target_pos(ItemColor(i.value))
-            if target != []:
-                target += [0.0477, 0.0065, -0.0312]
-                table_2_order.append(target)
-            else:
-                table_1_order.append(None)
-
-    cv.destroyAllWindows()
-    return table_1_order, table_2_order
+    return red_table_pos, green_table_pos
 
 def get_kitchen_cam_pos(order, position, offset):
     kitchen_cam = CV_Perception(env, "kitchen_camera")
@@ -459,28 +422,32 @@ def get_kitchen_cam_pos(order, position, offset):
 
 def teleport_obj(object_frame, position):
     frame = RealWorld.getFrame(object_frame)
+    c_frame = C.getFrame(object_frame)
     frame.setPosition(position)
     S.setState(RealWorld.getFrameState())
     S.step([], 0.001, ry.ControlMode.none)
+    p_glass = frame.getPosition()
+    r_glass = frame.getQuaternion()
+    c_frame.setPosition(p_glass)
+    c_frame.setQuaternion(r_glass)
 
-def start_teleport(item_list, item_to_list):
 
-    return target_name_list
+[initial_base_pos, J] = C.evalFeature(ry.FS.position, ["base_footprint"])
 
 if __name__ == '__main__':
     state = State.Load_env
 
-    coffe_list  = ["dyna_coffee_1", "dyna_coffee_2", "dyna_coffee_3"]
+    coffe_list = ["dyna_coffee_1", "dyna_coffee_2", "dyna_coffee_3"]
     sprite_list = ["sprite_1", "sprite_2", "sprite_3"]
-    cola_list   = ["cola_1", "cola_2", "cola_3"]
+    cola_list = ["cola_1", "cola_2", "cola_3"]
 
-    item_to_list_map =  { Items.Coffee : coffe_list,
-                          Items.Sprite : sprite_list,
-                          Items.Cola   : cola_list
+    item_to_list_map = {Items.Coffee: coffe_list,
+                        Items.Sprite: sprite_list,
+                        Items.Cola: cola_list
                         }
 
-    dining_table_to_location_map = { "table1": [-1.2, -1, 0.639] ,
-                                     "table2": [1.9, 2.1, 0.783]
+    dining_table_to_location_map = {"table1": [-1.2, -1, 0.639],
+                                    "table2": [1.9, 2.1, 0.783]
                                     }
 
     # create environment
@@ -494,7 +461,11 @@ if __name__ == '__main__':
         percept_red_table_pos, percept_green_table_pos = table_cam_pos()
     else:
         percept_green_table_pos = np.array([-0.18, -1.8, 0])
-        percept_red_table_pos   = np.array([-0.18, 0.6, 0])
+        percept_red_table_pos = np.array([-0.18, 0.6, 0])
+
+    table_to_pr2_pos_map = {"table1": percept_red_table_pos,
+                            "table2": percept_green_table_pos
+                            }
 
     # get gui order
     table_1, table_2 = gui.get_order()
@@ -503,9 +474,7 @@ if __name__ == '__main__':
 
     item_stack = []
 
-    object_pos_in_shelf = [[1.4, 2.5, 0.63], [1.6, 2.8, 0.6]] # calculate using shelf position
-
-
+    object_pos_in_shelf = [[1.4, 2.5, 0.63], [1.6, 2.8, 0.6]]  # calculate using shelf position
     camera_offset = [[0.067, 0, -0.013], [0.0477, 0.0065, -0.0312]]
 
     # Create item stack from both table orders
@@ -525,7 +494,7 @@ if __name__ == '__main__':
 
         if len(item_stack) == 1:
             process_list.append(item_stack.pop(0))
-        else: # must be between 2-6
+        else:  # must be between 2-6
             process_list.append(item_stack.pop(0))
             process_list.append(item_stack.pop(0))
 
@@ -536,69 +505,85 @@ if __name__ == '__main__':
             teleport_obj(order, object_pos_in_shelf[i])
 
             order_pos = RealWorld.frame(order).getPosition()
-            print("Real world pos of ",order," is : ", order_pos)
+            print("Real world pos of ", order, " is : ", order_pos)
 
             run_empty_steps(env.S, num_iter=20, tau=0.001)
-            obj_pos = get_kitchen_cam_pos(item[1], i+1, camera_offset[i])
-            print("Camera pos of ",order," is : ", obj_pos)
+            obj_pos = get_kitchen_cam_pos(item[1], i, camera_offset[i])
+            print("Camera pos of ", order, " is : ", obj_pos)
             Full_Order_Details.append([item[0], order, obj_pos])
-
+        exit()
         cv.destroyAllWindows()
-
         current_serving_objects = []
 
         # Grab from shelf and place it in the Tray
         for table_id, target_object, obj_position in Full_Order_Details:
             print(table_id, target_object, obj_position)
-            current_serving_objects.append(target_object)
+            current_serving_objects[table_id].append(target_object)
             target_pos = object_pos_in_tray.pop(0)
-            print("Start moving ite from shelf to tray...")
+            print("Start moving from shelf to tray...")
             grab_from_shelf_arm(target_object, obj_position, target_pos)
             print("Done")
 
-        print("Move Pr2 to dining table")
-        move_pr2_table(percept_green_table_pos, current_serving_objects)
+        # move first order
+        order_to_table = Full_Order_Details.pop(0)
+        target_pos = dining_table_to_location_map[order_to_table[0]]
+        target_object = order_to_table[1]
+        object_pos = order_to_table[2]
 
-        order_to_table  = Full_Order_Details.pop(0)
-        target_pos      = dining_table_to_location_map[order_to_table[0]]
-        target_object   = order_to_table[1]
-        object_pos      = order_to_table[2]
-
-
-
-        exit()
-
-
-
-        if order_1 != Items.Invalid or order_2 != Items.Invalid:
-            # near red table position from perception
-            #gui.add_message("\nThe dinner is on the way...")
-            #root.update()
+        if order_to_table[0] == "table1":
+            print("Move Pr2 to dining table1")
             move_pr2_table(percept_green_table_pos, current_serving_objects)
 
-            # placing on dining table second item goes first if serving 2 items to same table
-            target_object = order_green
-            config_glass = C.getFrame(target_object)
-            object_pos = config_glass.getPosition()
-
-            # from perception
-            target_pos = np.array([-1.2, -1, 0.639])
+            print("grasping and placing order in table 1")
             grab_from_green_arm(target_object, object_pos, target_pos)
 
-            position_steps = 8
-            target_object = order_green
-            target_pos = np.array([1.9, 2.1, 0.783])
+        elif order_to_table[0] == "table2":
+            print("Move Pr2 to dining table1")
+            move_pr2_table(percept_red_table_pos, current_serving_objects)
 
-            # Move to red table and place red object in table  add code here
+            print("grasping and placing order in table 1")
+            grab_from_red_arm(target_object, object_pos, target_pos)
 
-            #grab_and_place(target_object, target_pos)
+        else:  # impossible case.. only 2 table exists.. helpful during None expectation
+            print("Invalid table ID received.. Stopping execution")
+            exit()
 
-            position_steps = 5
-            #move_back(position_steps, target_object, target_pos)
+        # check if second order is available and process item2
+        if len(Full_Order_Details):
+            order_to_table_new = Full_Order_Details.pop(0)
+            target_pos_new = dining_table_to_location_map[order_to_table_new[0]]
+            target_object_new = order_to_table_new[1]
+            object_pos_new = order_to_table_new[2]
 
-            # return back pr2 to origin add code here
+            # 1st order : table1 and 2nd order : table1
+            if order_to_table[0] == "table1" and order_to_table_new[0] == "table1":
+                print("Same order in table 1, move side for panda to pick")
+                move_pr2_offset([0., -1.1, 0], current_serving_objects)
 
-        break # currently breaked at 1 iteration, will remove when pr2 move back to origin is implemented
+                print("grasping and placing order in table 1")
+                grab_from_green_arm(target_object_new, object_pos_new, target_pos_new)
+
+            # 1st order : table2 and 2nd order : table2
+            elif order_to_table[0] == "table2" and order_to_table_new[0] == "table2":
+                print("Same order in table 2, move side for panda to pick")
+                move_pr2_offset([0., -1.1, 0], current_serving_objects)
+
+                print("grasping and placing order in table 2")
+                grab_from_red_arm(target_object_new, object_pos_new, target_pos_new)
+
+            # 1st order : table1 and 2nd order : table2
+            elif order_to_table[0] == "table1" and order_to_table_new[0] == "table2":
+                print("Diff order, move side from table1 to table2")
+                move_pr2_offset([0.35, 2.45, 0], current_serving_objects)
+
+                print("grasping and placing order in table 1")
+                grab_from_red_arm(target_object_new, object_pos_new, target_pos_new)
+
+            else:  # impossible case.. only 2 table exists.. helpful during None expection
+                print("Invalid table ID received.. Stopping execution")
+                exit()
+
+        move_pr2_shelf(initial_base_pos + [0, 0.8, 0], [])
 
     print("press any key to exit")
     while True:

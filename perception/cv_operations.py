@@ -108,7 +108,7 @@ class CV_Perception:
         self.V.recopyMeshes(self.C)
         self.V.setConfiguration(self.C)
 
-    def get_target_pos(self, color, position, show_img=True, ):
+    def get_target_pos(self, color, position=0, show_img=True, ):
         [self.rgb, self.depth] = self.S.getImageAndDepth()
         self.points = self.S.depthData2pointCloud(self.depth, self.fxfypxpy)
 
@@ -116,10 +116,12 @@ class CV_Perception:
         hsv = cv.cvtColor(bgr, cv.COLOR_BGR2HSV)
 
         hsv_values = get_hsv_values(color)
-        if position == 1:
+        if position == 0:
             final_mask = get_image_mask(hsv, hsv_values, self.vertices_1)
-        else:
+        elif position == 1:
             final_mask = get_image_mask(hsv, hsv_values, self.vertices_2)
+        else:
+            print("wrong input position")
 
         contours, hierarchy = cv.findContours(final_mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
         segmented_image = cv.drawContours(bgr, contours, -1, (0, 0, 255), 1)
