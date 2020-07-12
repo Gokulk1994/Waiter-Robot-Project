@@ -480,9 +480,9 @@ if __name__ == '__main__':
     # Create item stack from both table orders
     for order_1, order_2 in zip(table_1, table_2):
         if order_1 != Items.Invalid:
-            item_stack.append(['table1,', order_1])
+            item_stack.append(['table1', order_1])
         if order_2 != Items.Invalid:
-            item_stack.append(['table2,', order_2])
+            item_stack.append(['table2', order_2])
 
     # loop until all items are delivered to the dining table
     while len(item_stack):
@@ -511,14 +511,14 @@ if __name__ == '__main__':
             obj_pos = get_kitchen_cam_pos(item[1], i, camera_offset[i])
             print("Camera pos of ", order, " is : ", obj_pos)
             Full_Order_Details.append([item[0], order, obj_pos])
-        exit()
+
         cv.destroyAllWindows()
         current_serving_objects = []
 
         # Grab from shelf and place it in the Tray
         for table_id, target_object, obj_position in Full_Order_Details:
             print(table_id, target_object, obj_position)
-            current_serving_objects[table_id].append(target_object)
+            current_serving_objects.append(target_object)
             target_pos = object_pos_in_tray.pop(0)
             print("Start moving from shelf to tray...")
             grab_from_shelf_arm(target_object, obj_position, target_pos)
@@ -538,10 +538,10 @@ if __name__ == '__main__':
             grab_from_green_arm(target_object, object_pos, target_pos)
 
         elif order_to_table[0] == "table2":
-            print("Move Pr2 to dining table1")
+            print("Move Pr2 to dining table2")
             move_pr2_table(percept_red_table_pos, current_serving_objects)
 
-            print("grasping and placing order in table 1")
+            print("grasping and placing order in table 2")
             grab_from_red_arm(target_object, object_pos, target_pos)
 
         else:  # impossible case.. only 2 table exists.. helpful during None expectation
@@ -576,7 +576,7 @@ if __name__ == '__main__':
                 print("Diff order, move side from table1 to table2")
                 move_pr2_offset([0.35, 2.45, 0], current_serving_objects)
 
-                print("grasping and placing order in table 1")
+                print("grasping and placing order in table 2")
                 grab_from_red_arm(target_object_new, object_pos_new, target_pos_new)
 
             else:  # impossible case.. only 2 table exists.. helpful during None expection
@@ -584,6 +584,8 @@ if __name__ == '__main__':
                 exit()
 
         move_pr2_shelf(initial_base_pos + [0, 0.8, 0], [])
+        print("Moved back to origin")
+        print("-----------------------------------------------")
 
     print("press any key to exit")
     while True:
