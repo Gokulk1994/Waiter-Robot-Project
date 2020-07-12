@@ -168,7 +168,7 @@ def grab_from_shelf_arm(object_name, obj_pos, tray_pos):
                       [0, 1, 0]]
     # from perception
     sim_glass = RealWorld.frame(object_name)
-    obj_pos = sim_glass.getPosition()
+    #obj_pos = sim_glass.getPosition()
     obj_pos = obj_pos + [0.08, 0, 0]
     shelf_gripper_komo = KomoOperations(env.C)
     __grab_and_place(shelf_gripper_komo, object_name, obj_pos, tray_pos, gripper_name,
