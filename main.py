@@ -447,9 +447,9 @@ def kitchen_camera_pos(table_1, table_2):
     cv.destroyAllWindows()
     return table_1_order, table_2_order
 
-def get_kitchen_cam_pos(order, offset):
+def get_kitchen_cam_pos(order, position, offset):
     kitchen_cam = CV_Perception(env, "kitchen_camera")
-    order_pos = kitchen_cam.get_target_pos(ItemColor(order.value))
+    order_pos = kitchen_cam.get_target_pos(ItemColor(order.value), position)
 
     if order_pos != []:
         order_pos += offset
@@ -479,13 +479,17 @@ if __name__ == '__main__':
                           Items.Cola   : cola_list
                         }
 
+    dining_table_to_location_map = { "table1": [-1.2, -1, 0.639] ,
+                                     "table2": [1.9, 2.1, 0.783]
+                                    }
+
     # create environment
 
     # set mass of dynamic objects
     env.add_dyna_mass(100.0)
 
     # receive order
-    user_ip = False
+    user_ip = True
     if user_ip:
         percept_red_table_pos, percept_green_table_pos = table_cam_pos()
     else:
@@ -499,6 +503,11 @@ if __name__ == '__main__':
 
     item_stack = []
 
+    object_pos_in_shelf = [[1.4, 2.5, 0.63], [1.6, 2.8, 0.6]] # calculate using shelf position
+
+
+    camera_offset = [[0.067, 0, -0.013], [0.0477, 0.0065, -0.0312]]
+
     # Create item stack from both table orders
     for order_1, order_2 in zip(table_1, table_2):
         if order_1 != Items.Invalid:
@@ -509,9 +518,10 @@ if __name__ == '__main__':
     # loop until all items are delivered to the dining table
     while len(item_stack):
         process_list = []
-        object_pos_in_shelf = [[1.4, 2.5, 0.63], [1.6, 2.8, 0.6]]
-        obj_pos_percept = []
+        Full_Order_Details = []
         target_name_list = []
+
+        object_pos_in_tray = [[2.35, 2.1, 0.783], [2.14, 2.1, 0.77]]  # calculate using tray position
 
         if len(item_stack) == 1:
             process_list.append(item_stack.pop(0))
@@ -519,53 +529,46 @@ if __name__ == '__main__':
             process_list.append(item_stack.pop(0))
             process_list.append(item_stack.pop(0))
 
-        for item in process_list:
+        # get object frame, teleport and get item position from camera perception
+        for i, item in enumerate(process_list):
             order = item_to_list_map[item[1]].pop(0)
             target_name_list.append([item[0], order])
-            teleport_obj(order, object_pos_in_shelf.pop(0))
+            teleport_obj(order, object_pos_in_shelf[i])
+
+            order_pos = RealWorld.frame(order).getPosition()
+            print("Real world pos of ",order," is : ", order_pos)
+
             run_empty_steps(env.S, num_iter=20, tau=0.001)
-            obj_pos = get_kitchen_cam_pos(item[1], [0.067, 0, -0.013])
-            obj_pos_percept.append([item[0], obj_pos])
-
-
-
-        rtrt
-        fingers_opt = ['R_finger1', 'R_finger2']
-        current_serving_objects = []
-
-        if order_1 != Items.Invalid:
-            order_red = item_to_list_map[order_1].pop(0)
-            teleport_obj(order_red, [1.4, 2.5, 0.63])
-            run_empty_steps(env.S, num_iter=20, tau=0.001)
-            table_1_order_pos = get_kitchen_cam_pos(order_1, [0.067, 0, -0.013])
-
-        if order_2 != Items.Invalid:
-            order_green = item_to_list_map[order_2].pop(0)
-            teleport_obj(order_green, [1.6, 2.8, 0.6])
-            run_empty_steps(env.S, num_iter=20, tau=0.001)
-            table_2_order_pos = get_kitchen_cam_pos(order_2, [0.0477, 0.0065, -0.0312])
+            obj_pos = get_kitchen_cam_pos(item[1], i+1, camera_offset[i])
+            print("Camera pos of ",order," is : ", obj_pos)
+            Full_Order_Details.append([item[0], order, obj_pos])
 
         cv.destroyAllWindows()
 
-        run_empty_steps(env.S, num_iter=50, tau=0.001)
+        current_serving_objects = []
 
-        if order_1 != Items.Invalid:
-            target_object = order_red
+        # Grab from shelf and place it in the Tray
+        for table_id, target_object, obj_position in Full_Order_Details:
+            print(table_id, target_object, obj_position)
             current_serving_objects.append(target_object)
-            target_pos = np.array([2.35, 2.1, 0.783])
-            print("panda to order 1")
-            grab_from_shelf_arm(target_object, table_1_order_pos, target_pos)
-            #gui.add_message("\nItem 1 placed on tray")
-            #root.update()
+            target_pos = object_pos_in_tray.pop(0)
+            print("Start moving ite from shelf to tray...")
+            grab_from_shelf_arm(target_object, obj_position, target_pos)
+            print("Done")
 
-        if order_2 != Items.Invalid:
-            target_object = order_green
-            current_serving_objects.append(target_object)
-            target_pos = np.array([2.14, 2.1, 0.77])
-            print("panda to order 2")
-            grab_from_shelf_arm(target_object, table_2_order_pos, target_pos)
-            #gui.add_message("\nItem 2 placed on tray")
-            #root.update()
+        print("Move Pr2 to dining table")
+        move_pr2_table(percept_green_table_pos, current_serving_objects)
+
+        order_to_table  = Full_Order_Details.pop(0)
+        target_pos      = dining_table_to_location_map[order_to_table[0]]
+        target_object   = order_to_table[1]
+        object_pos      = order_to_table[2]
+
+
+
+        exit()
+
+
 
         if order_1 != Items.Invalid or order_2 != Items.Invalid:
             # near red table position from perception
