@@ -15,6 +15,7 @@ class Items(enum.Enum):
     Coffee = 1
     Sprite = 2
     Cola = 3
+    Invalid = 7
 
 
 class ItemColor(enum.Enum):
@@ -24,6 +25,7 @@ class ItemColor(enum.Enum):
     White = 4
     Blue = 5
     Yellow = 6
+    Invalid = 7
 
 
 class ProgressState(enum.Enum):

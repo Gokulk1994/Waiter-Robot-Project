@@ -30,7 +30,7 @@ class Environment:
                 dyna_obj = self.RealWorld.frame(frame_name)
                 dyna_obj.setMass(mass)
 
-    def set_contact(self,frame_name):
+    def set_contact(self, frame_name):
         obj = self.RealWorld.frame(frame_name)
         obj.setContact(1)
 
@@ -38,9 +38,8 @@ class Environment:
         obj = self.RealWorld.frame(frame_name)
         return obj.getPosition()
 
-    def get_quaternion(self,frame_name):
+    def get_quaternion(self, frame_name):
         obj = self.RealWorld.frame(frame_name)
         return obj.getQuaternion(1)
-
 
 

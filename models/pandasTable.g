@@ -1,7 +1,7 @@
 world {}
 
 table (world){
-    shape:ssBox, Q:<t(0 0. .6)>, size:[2. 2. .1 .02], color:[.3 .3 .3]
+    shape:ssBox, Q:<t(0 0. .6)>, size:[10. 2. .1 .02], color:[.3 .3 .3]
     contact, logical:{ }
     friction:.1
 }
