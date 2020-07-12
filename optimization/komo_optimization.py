@@ -224,6 +224,28 @@ class KomoOperations:
         komo.addObjective([], ry.FS.qItself, ['torso_lift_joint'], ry.OT.eq, [1e1], order=1)
         komo.optimize()
         return komo
+
+    def move_to_object(self, gripper, t_object):
+        komo = self.C.komo_path(1., 1, 0.001, True)
+        komo.clearObjectives()
+        komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq)
+        komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq)
+        #komo.addObjective([0.], ry.FS.positionDiff, [gripper, t_object], ry.OT.eq, [1e2], target=[0.08, 0, 0])
+        #komo.addObjective([0.75], ry.FS.positionDiff, [gripper, t_object], ry.OT.eq, [1e2], target=[0.06, 0, 0])
+        komo.addObjective([], ry.FS.positionDiff, [gripper, t_object], ry.OT.eq, [1e3], target=[0.07, 0, 0])
+        komo.addObjective([], ry.FS.distance, [gripper, t_object], ry.OT.eq, [1e2], target=[0.03])
+        komo.addObjective([], ry.FS.vectorZ, [gripper], ry.OT.eq, [1e2], target=[1, 0, 0])
+        komo.addObjective([], ry.FS.vectorX, [gripper], ry.OT.eq, [1e2], target=[0, -1, 0])
+        # komo.addObjective([], ry.FS.scalarProductXZ, [gripper, t_object], ry.OT.eq, [1e2])
+        # komo.addObjective([], ry.FS.scalarProductZZ, [gripper, t_object], ry.OT.eq, [1e2])
+        komo.addObjective(time=[1.], feature=ry.FS.qItself, type=ry.OT.eq, order=1);
+        komo.addObjective([], ry.FS.qItself, ['R_finger1'], ry.OT.eq, [1e1], order=1)
+        komo.addObjective([], ry.FS.qItself, ['R_finger2'], ry.OT.eq, [1e1], order=1)
+        komo_final = self.immobilize_pr2(komo)
+        # komo.addObjective([], ry.FS.transVelocities, ['torso_lift_joint'], ry.OT.eq, [1e1], order=1)
+
+        komo_final.optimize()
+        return komo_final
 """
     def move_back_position(self, gripper, position, targetQuat, position_steps, align=True):
         komo = self.C.komo_path(1., position_steps, self.tau, True)

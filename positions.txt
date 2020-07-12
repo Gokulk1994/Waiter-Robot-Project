@@ -1,0 +1,29 @@
+placing items on dining table
+
+2 items on table 1
+pos1 =np.array([-1.2, -1, 0.639])
+pos2 = np.array([-1., -1.05, 0.639])
+
+2 items on table 2
+pos1 = np.array([-1.2, 0.7, 0.639)
+pos2 = np.array([-1.,0.65,0.639]
+~~ target = RealWorld.frame('coffe_table')
+~~ pos2 = target.getPosition() + [0,-0.2,0.7]
+
+pR2 move position
+
+1. pr2 serving table1 first and table2 next
+    move_pr2_table(percept_green_table_pos, current_serving_objects) ~~np.array([-0.18, -1.8, 0])
+    move_pr2_offset([0.35, 2.45, 0], current_serving_objects)
+    ~~ final base pos should be arround np.array([0.5   0.5   0])
+    or targetposition for pr2 after served table1 should be [0.17770368 0.64707572 0.]
+
+2. pr2 serving 2 objects table1
+    move_pr2_table(percept_green_table_pos, current_serving_objects) ~~np.array([-0.18, -1.8, 0])
+    move_pr2_offset([0., -1.1, 0], current_serving_objects)
+
+3. pr2 serving 2 objects to table2
+    move_pr2_table(percept_red_table_pos, current_serving_objects) ~~np.array([-0.25, 0.6, 0])
+    move_pr2_offset([0., -1.1, 0], current_serving_objects)
+
+4. pr2 serving
