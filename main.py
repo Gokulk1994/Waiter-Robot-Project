@@ -24,6 +24,7 @@ while True:
         break
 
 root.update()
+root.quit()
 
 model_path = "models/Restaurant.g"
 env = Environment(model_path)
@@ -462,6 +463,10 @@ def teleport_obj(object_frame, position):
     S.setState(RealWorld.getFrameState())
     S.step([], 0.001, ry.ControlMode.none)
 
+def start_teleport(item_list, item_to_list):
+
+    return target_name_list
+
 if __name__ == '__main__':
     state = State.Load_env
 
@@ -480,7 +485,7 @@ if __name__ == '__main__':
     env.add_dyna_mass(100.0)
 
     # receive order
-    user_ip = True
+    user_ip = False
     if user_ip:
         percept_red_table_pos, percept_green_table_pos = table_cam_pos()
     else:
@@ -492,10 +497,39 @@ if __name__ == '__main__':
     table_1_order = []
     table_2_order = []
 
-    for order_1, order_2 in zip(table_1, table_2):
-        if order_1 == Items.Invalid  and order_2 == Items.Invalid:
-            break
+    item_stack = []
 
+    # Create item stack from both table orders
+    for order_1, order_2 in zip(table_1, table_2):
+        if order_1 != Items.Invalid:
+            item_stack.append(['table1,', order_1])
+        if order_2 != Items.Invalid:
+            item_stack.append(['table2,', order_2])
+
+    # loop until all items are delivered to the dining table
+    while len(item_stack):
+        process_list = []
+        object_pos_in_shelf = [[1.4, 2.5, 0.63], [1.6, 2.8, 0.6]]
+        obj_pos_percept = []
+        target_name_list = []
+
+        if len(item_stack) == 1:
+            process_list.append(item_stack.pop(0))
+        else: # must be between 2-6
+            process_list.append(item_stack.pop(0))
+            process_list.append(item_stack.pop(0))
+
+        for item in process_list:
+            order = item_to_list_map[item[1]].pop(0)
+            target_name_list.append([item[0], order])
+            teleport_obj(order, object_pos_in_shelf.pop(0))
+            run_empty_steps(env.S, num_iter=20, tau=0.001)
+            obj_pos = get_kitchen_cam_pos(item[1], [0.067, 0, -0.013])
+            obj_pos_percept.append([item[0], obj_pos])
+
+
+
+        rtrt
         fingers_opt = ['R_finger1', 'R_finger2']
         current_serving_objects = []
 
@@ -503,7 +537,7 @@ if __name__ == '__main__':
             order_red = item_to_list_map[order_1].pop(0)
             teleport_obj(order_red, [1.4, 2.5, 0.63])
             run_empty_steps(env.S, num_iter=20, tau=0.001)
-            table_1_order_pos = get_kitchen_cam_pos(order_1,[0.067, 0, -0.013])
+            table_1_order_pos = get_kitchen_cam_pos(order_1, [0.067, 0, -0.013])
 
         if order_2 != Items.Invalid:
             order_green = item_to_list_map[order_2].pop(0)
@@ -521,7 +555,8 @@ if __name__ == '__main__':
             target_pos = np.array([2.35, 2.1, 0.783])
             print("panda to order 1")
             grab_from_shelf_arm(target_object, table_1_order_pos, target_pos)
-            gui.add_message("\nItem 1 placed on tray")
+            #gui.add_message("\nItem 1 placed on tray")
+            #root.update()
 
         if order_2 != Items.Invalid:
             target_object = order_green
@@ -529,11 +564,13 @@ if __name__ == '__main__':
             target_pos = np.array([2.14, 2.1, 0.77])
             print("panda to order 2")
             grab_from_shelf_arm(target_object, table_2_order_pos, target_pos)
-            gui.add_message("\nItem 2 placed on tray")
+            #gui.add_message("\nItem 2 placed on tray")
+            #root.update()
 
         if order_1 != Items.Invalid or order_2 != Items.Invalid:
             # near red table position from perception
-            gui.add_message("\nThe dinner is on the way...")
+            #gui.add_message("\nThe dinner is on the way...")
+            #root.update()
             move_pr2_table(percept_green_table_pos, current_serving_objects)
 
             # placing on dining table second item goes first if serving 2 items to same table

@@ -55,20 +55,16 @@ def get_image_mask(hsv, hsv_values, vertices):
         mask2 = cv.inRange(hsv, hsv_values[2], hsv_values[3])
         mask += mask2
 
-    while True:
-        cv.imshow('roi_mask', mask)
-
-        if cv.waitKey(1) & 0xFF == ord('q'):
-            break
-
+    cv.imshow('without mask', mask)
+    cv.waitKey(5)
 
     if vertices is not None:
         roi_mask = np.zeros_like(mask)
         roi_mask = cv.fillPoly(roi_mask, vertices, (255, 255, 255))
-
         mask = cv.bitwise_and(mask, roi_mask)
 
-
+        cv.imshow('with roi mask', mask)
+        cv.waitKey(0)
 
     return mask
 
@@ -118,7 +114,7 @@ class CV_Perception:
         final_mask = get_image_mask(hsv, hsv_values, self.vertices)
 
         contours, hierarchy = cv.findContours(final_mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-        segmented_image = cv.drawContours(bgr, contours, -1, (0, 255, 255), 2)
+        segmented_image = cv.drawContours(bgr, contours, -1, (0, 0, 255), 1)
         image_list = [segmented_image]
 
         if show_img:
