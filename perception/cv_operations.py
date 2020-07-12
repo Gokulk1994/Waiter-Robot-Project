@@ -53,20 +53,20 @@ def get_image_mask(hsv, hsv_values, vertices):
         mask2 = cv.inRange(hsv, hsv_values[2], hsv_values[3])
         mask += mask2
 
-    cv.imshow('without mask', mask)
-    cv.waitKey(1)
+    #cv.imshow('without mask', mask)
+    #cv.waitKey(1)
 
     if vertices is not None:
         roi_mask = np.zeros_like(mask)
         roi_mask = cv.fillPoly(roi_mask, vertices, (255, 255, 255))
 
-        cv.imshow('roi', roi_mask)
-        cv.waitKey(1)
+        #cv.imshow('roi', roi_mask)
+        #cv.waitKey(1)
 
         mask = cv.bitwise_and(mask, roi_mask)
 
-        cv.imshow('with roi mask', mask)
-        cv.waitKey(1)
+        #cv.imshow('with roi mask', mask)
+        #cv.waitKey(1)
 
     return mask
 

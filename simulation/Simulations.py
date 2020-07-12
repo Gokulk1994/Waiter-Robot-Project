@@ -26,7 +26,7 @@ class Environment:
     def add_dyna_mass(self, mass):
         for frame_name in self.RealWorld.getFrameNames():
             if "dyna_" in frame_name:
-                print("Mass of ", frame_name, "set to", mass, " kgs")
+                #print("Mass of ", frame_name, "set to", mass, " kgs")
                 dyna_obj = self.RealWorld.frame(frame_name)
                 dyna_obj.setMass(mass)
 
