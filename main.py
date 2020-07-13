@@ -105,8 +105,8 @@ def __grab_and_place(komo_op, object_name, object_pos, dest_pos, gripper_name, g
         if not S.getGripperIsGrasping(gripper_name):
             [y, J] = C.evalFeature(ry.FS.position, [gripper_name])
             distance = np.linalg.norm(y - cup_pos)
-            # print(distance)
-            if distance < 0.06 and progress == ProgressState.Init:
+            #print("****", distance)
+            if distance < 0.0505 and progress == ProgressState.Init:
                 progress = ProgressState.Started
                 # print(S.getGripperWidth("R_gripper"))
                 S.closeGripper(gripper_name)
@@ -124,13 +124,15 @@ def __grab_and_place(komo_op, object_name, object_pos, dest_pos, gripper_name, g
         if progress == ProgressState.Init:
             print("move to object called")
             start_time = time.time()
+            position_steps = 1
             komo = komo_op.move_to_position(gripper_center, cup_pos, offsets1,
-                                            vector_target1, fingers_opt, False)
+                                            vector_target1, fingers_opt, True)
             komo.optimize()
             print("komo opt time ", (time.time() - start_time))
 
         elif progress == ProgressState.Started and S.getGripperIsGrasping(gripper_name):
             start_time = time.time()
+            position_steps = 8
             komo = komo_op.move_to_position(gripper_center, target_pos, offsets2,
                                             vector_target2, fingers_opt, False)
             komo.optimize()
@@ -141,7 +143,8 @@ def __grab_and_place(komo_op, object_name, object_pos, dest_pos, gripper_name, g
         if progress == ProgressState.Init or (
                 progress == ProgressState.Started and S.getGripperIsGrasping(gripper_name)):
             for i in range(position_steps):
-                time.sleep(2)
+                if position_steps > 1:
+                    time.sleep(2)
                 print(i)
                 C.setFrameState(komo.getConfiguration(i))
                 # V.setConfiguration(C)
@@ -180,7 +183,7 @@ def grab_from_shelf_arm(object_name, obj_pos, tray_pos):
                      gripper_center, fingers_opt, offsets1, offsets2, vector_target1,
                      vector_target2)
     move_back_shelf_arm(shelf_gripper_komo, object_name)
-    # widen_gripper(gripper_name)
+    #widen_gripper(gripper_name)
 
 
 def grab_from_green_arm(object_name, obj_pos, table_pos):
@@ -321,7 +324,7 @@ def __move_pr2(pr2_komo, dest_pos, vector_target, start_tau_param, incr_tau_para
     sim_obj2 = None
     config_obj1 = None
     config_obj2 = None
-    tau = 0.005
+    tau = 0.01
 
     if len(ref_objects) == 2:
         sim_obj1 = RealWorld.frame(ref_objects[0])
@@ -348,6 +351,8 @@ def __move_pr2(pr2_komo, dest_pos, vector_target, start_tau_param, incr_tau_para
             C.setFrameState(komo.getConfiguration(0))
             q = C.getJointState()
         elif state == 1 and count_break > 50:
+            run_empty_steps(S, 40)
+            __update_config_reference(sim_obj1, config_obj1, sim_obj2, config_obj2)
             break
         S.step(q, tau, ry.ControlMode.position)
 
@@ -580,7 +585,11 @@ if __name__ == '__main__':
                 widen_gripper("1_gripper")
                 sim_glass = RealWorld.frame(target_object_new)
                 object_pos_new = sim_glass.getPosition()
+                if target_object_new == Items.Coffee:
+                    print("second order is coffe")
+                    object_pos_new = object_pos_new + [0, -0.04, 0]
                 print("grasping and placing order in table 1")
+                widen_gripper("1_gripper")
                 grab_from_green_arm(target_object_new, object_pos_new, target_pos_new)
 
             # 1st order : table2 and 2nd order : table2
@@ -590,7 +599,11 @@ if __name__ == '__main__':
                 widen_gripper("L_gripper")
                 sim_glass = RealWorld.frame(target_object_new)
                 object_pos_new = sim_glass.getPosition()
+                if target_object_new == Items.Coffee:
+                    print("second order is coffe")
+                    object_pos_new = object_pos_new + [0, -0.04, 0]
                 print("grasping and placing order in table 2")
+                widen_gripper("L_gripper")
                 grab_from_red_arm(target_object_new, object_pos_new, target_pos_new)
 
             # 1st order : table1 and 2nd order : table2
@@ -600,13 +613,14 @@ if __name__ == '__main__':
                 sim_glass = RealWorld.frame(target_object_new)
                 object_pos_new = sim_glass.getPosition()
                 print("grasping and placing order in table 2")
+                widen_gripper("L_gripper")
                 grab_from_red_arm(target_object_new, object_pos_new, target_pos_new)
 
             else:  # impossible case.. only 2 table exists.. helpful during None expection
                 print("Invalid table ID received.. Stopping execution")
                 exit()
 
-        move_pr2_shelf(initial_base_pos + [0.6, 0.34, 0], [])
+        move_pr2_shelf(initial_base_pos + [0.67, 0.34, 0], [])
         print("*** initial base pos", initial_base_pos)
         [end_base_pos, J] = C.evalFeature(ry.FS.position, ["base_footprint"])
         print("*** end base pos", end_base_pos)
