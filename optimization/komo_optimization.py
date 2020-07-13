@@ -86,7 +86,6 @@ class KomoOperations:
     def move_to_position(self, gripper, target_position, offsets, vector_target=None,
                          fingers_opt=None, no_time_step=True):
         print("Komo call: move to position")
-        start_time = time.time()
         komo = self.get_default_komo()
 
         if no_time_step:
@@ -107,7 +106,6 @@ class KomoOperations:
             for finger in fingers_opt:
                 komo.addObjective([], ry.FS.qItself, [finger], ry.OT.eq, [1e1], order=1)
         komo_final = self.immobilize_pr2(komo)
-        print("komo opt time ", (time.time() - start_time))
         return komo_final
 
     def gripper_move_back_position(self, gripper, position, position_steps, vector_target=None,

@@ -104,7 +104,7 @@ class CV_Perception:
     def set_point_clouds(self):
         [self.rgb, self.depth] = self.S.getImageAndDepth()
         self.points = self.S.depthData2pointCloud(self.depth, self.fxfypxpy)
-        self.cameraFrame.setPointCloud(self.points, self.rgb)
+        #self.cameraFrame.setPointCloud(self.points, self.rgb)
         self.V.recopyMeshes(self.C)
         self.V.setConfiguration(self.C)
 
@@ -147,7 +147,7 @@ class CV_Perception:
             if len(x) > 0:
                 pc_coord = (np.array(pc_coord))
                 mean_pc = np.mean(pc_coord, axis=0)
-                self.cameraFrame.setPointCloud(full_depth, self.rgb)
+                #self.cameraFrame.setPointCloud(full_depth, self.rgb)
 
                 obj_position = self.cameraFrame.getRotationMatrix() @ mean_pc + self.cameraFrame.getPosition()
 
@@ -156,6 +156,6 @@ class CV_Perception:
     def update_rgb_image(self):
         [rgb, depth] = self.S.getImageAndDepth()
         points = self.S.depthData2pointCloud(depth, self.fxfypxpy)
-        self.cameraFrame.setPointCloud(points, rgb)
+        #self.cameraFrame.setPointCloud(points, rgb)
         self.V.recopyMeshes(self.C)
         self.V.setConfiguration(self.C)

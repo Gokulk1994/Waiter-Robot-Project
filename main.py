@@ -123,13 +123,18 @@ def __grab_and_place(komo_op, object_name, object_pos, dest_pos, gripper_name, g
 
         if progress == ProgressState.Init:
             print("move to object called")
+            start_time = time.time()
             komo = komo_op.move_to_position(gripper_center, cup_pos, offsets1,
                                             vector_target1, fingers_opt, False)
             komo.optimize()
+            print("komo opt time ", (time.time() - start_time))
+
         elif progress == ProgressState.Started and S.getGripperIsGrasping(gripper_name):
+            start_time = time.time()
             komo = komo_op.move_to_position(gripper_center, target_pos, offsets2,
                                             vector_target2, fingers_opt, False)
             komo.optimize()
+            print("komo opt time ", (time.time() - start_time))
             # v1 = komo.view()
             # v1.playVideo()
 
@@ -169,7 +174,7 @@ def grab_from_shelf_arm(object_name, obj_pos, tray_pos):
     # from perception
     sim_glass = RealWorld.frame(object_name)
     #obj_pos = sim_glass.getPosition()
-    obj_pos = obj_pos + [0.08, 0, 0]
+    obj_pos = obj_pos + [0.07, 0, 0]
     shelf_gripper_komo = KomoOperations(env.C)
     __grab_and_place(shelf_gripper_komo, object_name, obj_pos, tray_pos, gripper_name,
                      gripper_center, fingers_opt, offsets1, offsets2, vector_target1,
@@ -395,20 +400,21 @@ def move_pr2_shelf(dest_pos, ref_objects):
 def table_cam_pos():
     kitchen_cam = CV_Perception(env, "table_camera")
 
-    red_table_pos = kitchen_cam.get_target_pos(ItemColor(1)) + [0.0231, -0.011, 0]
+    red_table_pos = kitchen_cam.get_target_pos(ItemColor(1), show_img=False) + [0.0231, -0.011, 0]
     red_table_pos[2] = 0
 
-    print("red table with offset ", red_table_pos)
+    print("red table", red_table_pos)
     print(env.get_position("coffe_table"))
 
-    green_table_pos = kitchen_cam.get_target_pos(ItemColor(2)) + [0, -0.01, 0] + [0.82, -0.95, 0]
+    green_table_pos = kitchen_cam.get_target_pos(ItemColor(2), show_img=False) + [0, -0.01, 0]
     ## offset [0.82, -0.95, 0]
     green_table_pos[2] = 0
 
-    print("green table with offset", green_table_pos)
+    print("green table", green_table_pos)
     print(env.get_position("coffe_table_1"))
 
-    return red_table_pos, green_table_pos
+    return np.array(red_table_pos), np.array(green_table_pos)
+
 
 def get_kitchen_cam_pos(order, position, offset):
     kitchen_cam = CV_Perception(env, "kitchen_camera")
@@ -424,6 +430,7 @@ def teleport_obj(object_frame, position):
     frame = RealWorld.getFrame(object_frame)
     c_frame = C.getFrame(object_frame)
     frame.setPosition(position)
+    frame.setContact(1)
     S.setState(RealWorld.getFrameState())
     S.step([], 0.001, ry.ControlMode.none)
     p_glass = frame.getPosition()
@@ -446,9 +453,10 @@ if __name__ == '__main__':
                         Items.Cola: cola_list
                         }
 
-    dining_table_to_location_map = {"table1": [-1.2, -1, 0.639],
-                                    "table2": [1.9, 2.1, 0.783]
-                                    }
+    dining_table_to_location_map = {
+        "table1": [np.array([-1.2, -1, 0.639]), np.array([-1., -1.05, 0.639])],
+        "table2": [np.array([-1.2, 0.7, 0.639]), np.array([-1., 0.65, 0.639])]
+    }
 
     # create environment
 
@@ -459,22 +467,21 @@ if __name__ == '__main__':
     user_ip = True
     if user_ip:
         percept_red_table_pos, percept_green_table_pos = table_cam_pos()
+        percept_red_table_pos_offset = percept_red_table_pos + [0.75, -0.25, 0]
+        percept_green_table_pos_offset = percept_green_table_pos + [0.82, -0.95, 0]
     else:
-        percept_green_table_pos = np.array([-0.18, -1.8, 0])
-        percept_red_table_pos = np.array([-0.18, 0.6, 0])
+        percept_green_table_pos_offset = np.array([-0.18, -1.8, 0])
+        percept_red_table_pos_offset = np.array([-0.25, 0.6, 0])
 
-    table_to_pr2_pos_map = {"table1": percept_red_table_pos,
-                            "table2": percept_green_table_pos
-                            }
 
     # get gui order
     table_1, table_2 = gui.get_order()
     table_1_order = []
     table_2_order = []
-
+    served_objects = []
     item_stack = []
 
-    object_pos_in_shelf = [[1.4, 2.5, 0.63], [1.6, 2.8, 0.6]]  # calculate using shelf position
+    object_pos_in_shelf = [np.array([1.4, 2.5, 0.63]), np.array([1.6, 2.8, 0.6])]  # calculate using shelf position
     camera_offset = [[0.067, 0, -0.013], [0.0477, 0.0065, -0.0312]]
 
     # Create item stack from both table orders
@@ -490,7 +497,8 @@ if __name__ == '__main__':
         Full_Order_Details = []
         target_name_list = []
 
-        object_pos_in_tray = [[2.35, 2.1, 0.783], [2.14, 2.1, 0.77]]  # calculate using tray position
+        #object_pos_in_tray = [np.array([2.35, 2.1, 0.783]), np.array([2.14, 2.1, 0.77])]  # calculate using tray position
+        object_pos_in_tray = [np.array([2.14, 2.1, 0.783]), np.array([2.35, 2.1, 0.77])]
 
         if len(item_stack) == 1:
             process_list.append(item_stack.pop(0))
@@ -526,21 +534,32 @@ if __name__ == '__main__':
 
         # move first order
         order_to_table = Full_Order_Details.pop(0)
-        target_pos = dining_table_to_location_map[order_to_table[0]]
         target_object = order_to_table[1]
-        object_pos = order_to_table[2]
+        if len(dining_table_to_location_map[order_to_table[0]]):
+            target_pos = dining_table_to_location_map[order_to_table[0]].pop(0)
+        else:
+            print("No space to place items in table. Teleporting used dishes to cleaning table")
+            # need a cleaning table and positions over there
+            # implement table based seved objects list. so that only table in which no space is available,
+            # teleport used items
+            # teleport_obj(served_objects[0], cleaning_table_pos[0])
+            # teleport_obj(served_objects[1], cleaning_table_pos[1])
+            # target_pos = [] # reassign position from init
 
+            exit()  # currently existing will be removed once above function is implemented
         if order_to_table[0] == "table1":
             print("Move Pr2 to dining table1")
-            move_pr2_table(percept_green_table_pos, current_serving_objects)
-
+            move_pr2_table(percept_green_table_pos_offset, current_serving_objects)
+            sim_glass = RealWorld.frame(target_object)
+            object_pos = sim_glass.getPosition()
             print("grasping and placing order in table 1")
             grab_from_green_arm(target_object, object_pos, target_pos)
 
         elif order_to_table[0] == "table2":
             print("Move Pr2 to dining table2")
-            move_pr2_table(percept_red_table_pos, current_serving_objects)
-
+            move_pr2_table(percept_red_table_pos_offset, current_serving_objects)
+            sim_glass = RealWorld.frame(target_object)
+            object_pos = sim_glass.getPosition()
             print("grasping and placing order in table 2")
             grab_from_red_arm(target_object, object_pos, target_pos)
 
@@ -551,15 +570,16 @@ if __name__ == '__main__':
         # check if second order is available and process item2
         if len(Full_Order_Details):
             order_to_table_new = Full_Order_Details.pop(0)
-            target_pos_new = dining_table_to_location_map[order_to_table_new[0]]
             target_object_new = order_to_table_new[1]
-            object_pos_new = order_to_table_new[2]
+            target_pos_new = dining_table_to_location_map[order_to_table_new[0]].pop(0)
 
             # 1st order : table1 and 2nd order : table1
             if order_to_table[0] == "table1" and order_to_table_new[0] == "table1":
                 print("Same order in table 1, move side for panda to pick")
                 move_pr2_offset([0., -1.1, 0], current_serving_objects)
-
+                widen_gripper("1_gripper")
+                sim_glass = RealWorld.frame(target_object_new)
+                object_pos_new = sim_glass.getPosition()
                 print("grasping and placing order in table 1")
                 grab_from_green_arm(target_object_new, object_pos_new, target_pos_new)
 
@@ -567,15 +587,18 @@ if __name__ == '__main__':
             elif order_to_table[0] == "table2" and order_to_table_new[0] == "table2":
                 print("Same order in table 2, move side for panda to pick")
                 move_pr2_offset([0., -1.1, 0], current_serving_objects)
-
+                widen_gripper("L_gripper")
+                sim_glass = RealWorld.frame(target_object_new)
+                object_pos_new = sim_glass.getPosition()
                 print("grasping and placing order in table 2")
                 grab_from_red_arm(target_object_new, object_pos_new, target_pos_new)
 
             # 1st order : table1 and 2nd order : table2
             elif order_to_table[0] == "table1" and order_to_table_new[0] == "table2":
                 print("Diff order, move side from table1 to table2")
-                move_pr2_offset([0.35, 2.45, 0], current_serving_objects)
-
+                move_pr2_offset([0.35, 2.46, 0], current_serving_objects)
+                sim_glass = RealWorld.frame(target_object_new)
+                object_pos_new = sim_glass.getPosition()
                 print("grasping and placing order in table 2")
                 grab_from_red_arm(target_object_new, object_pos_new, target_pos_new)
 
@@ -583,7 +606,11 @@ if __name__ == '__main__':
                 print("Invalid table ID received.. Stopping execution")
                 exit()
 
-        move_pr2_shelf(initial_base_pos + [0, 0.8, 0], [])
+        move_pr2_shelf(initial_base_pos + [0.6, 0.34, 0], [])
+        print("*** initial base pos", initial_base_pos)
+        [end_base_pos, J] = C.evalFeature(ry.FS.position, ["base_footprint"])
+        print("*** end base pos", end_base_pos)
+        served_objects += current_serving_objects
         print("Moved back to origin")
         print("-----------------------------------------------")
 
