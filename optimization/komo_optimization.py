@@ -107,7 +107,7 @@ class KomoOperations:
             for finger in fingers_opt:
                 komo.addObjective([], ry.FS.qItself, [finger], ry.OT.eq, [1e1], order=1)
         komo_final = self.immobilize_pr2(komo)
-        print("komo opt time ", (time.time() - start_time))
+        #print("komo opt time ", (time.time() - start_time))
         return komo_final
 
     def gripper_move_back_position(self, gripper, position, position_steps, vector_target=None,
@@ -131,7 +131,7 @@ class KomoOperations:
                 komo.addObjective([0, .25], ry.FS.qItself, [finger], ry.OT.eq, target=open_finger_pos)
 
         komo_final = self.immobilize_pr2(komo)
-        print("komo opt time ", (time.time() - start_time))
+        #print("komo opt time ", (time.time() - start_time))
         return komo_final
 
     def move_pr2_position(self, target_pos, vector_target, start_komo_tau=0.001):
