@@ -16,8 +16,11 @@ def get_hsv_values(color):
             np.array([0, 0, 0]),
             np.array([180, 255, 10]),
         ]
-    elif color == ItemColor.White:
-        pass
+    elif color == ItemColor.Blue:
+        hsv_color = [
+            np.array([110, 100, 100]),
+            np.array([230, 255, 255]),
+        ]
     elif color == ItemColor.Yellow:
         hsv_color = [
             np.array([20, 100, 100]),
@@ -46,27 +49,30 @@ def show_images(image_list):
         cv.waitKey(0)
 
 
-def get_image_mask(hsv, hsv_values, vertices):
+def get_image_mask(hsv, hsv_values, vertices, show_img = False):
     #blur = cv.GaussianBlur(hsv,(5,5),cv.BORDER_DEFAULT)
     mask = cv.inRange(hsv, hsv_values[0], hsv_values[1])
     if len(hsv_values) == 4:
         mask2 = cv.inRange(hsv, hsv_values[2], hsv_values[3])
         mask += mask2
 
-    #cv.imshow('without mask', mask)
-    #cv.waitKey(1)
+    if show_img:
+        cv.imshow('without mask', mask)
+        cv.waitKey(1)
 
     if vertices is not None:
         roi_mask = np.zeros_like(mask)
         roi_mask = cv.fillPoly(roi_mask, vertices, (255, 255, 255))
 
-        #cv.imshow('roi', roi_mask)
-        #cv.waitKey(1)
+        if show_img:
+            cv.imshow('roi', roi_mask)
+            cv.waitKey(1)
 
         mask = cv.bitwise_and(mask, roi_mask)
 
-        #cv.imshow('with roi mask', mask)
-        #cv.waitKey(1)
+        if show_img:
+            cv.imshow('with roi mask', mask)
+            cv.waitKey(1)
 
     return mask
 
@@ -93,13 +99,6 @@ class CV_Perception:
         self.V.recopyMeshes(self.C)
         self.V.setConfiguration(self.C)
 
-        if camera_name == "kitchen_camera":
-            #self.vertices_1 = np.array([[(120, 260), (180, 55), (350, 55), (530, 260)]], dtype=np.int32)
-            self.vertices_1 = np.array([[(325, 260), (280, 55), (350, 55), (530, 260)]], dtype=np.int32)
-            self.vertices_2 = np.array([[(120, 260), (180, 55), (280, 55), (325, 260)]], dtype=np.int32)
-        else:
-            self.vertices_1 = None
-            self.vertices_2 = None
 
     def set_point_clouds(self):
         [self.rgb, self.depth] = self.S.getImageAndDepth()
@@ -108,7 +107,7 @@ class CV_Perception:
         self.V.recopyMeshes(self.C)
         self.V.setConfiguration(self.C)
 
-    def get_target_pos(self, color, position=0, show_img=True, ):
+    def get_target_pos(self, color, vertices=None,  show_img=True):
         [self.rgb, self.depth] = self.S.getImageAndDepth()
         self.points = self.S.depthData2pointCloud(self.depth, self.fxfypxpy)
 
@@ -116,12 +115,8 @@ class CV_Perception:
         hsv = cv.cvtColor(bgr, cv.COLOR_BGR2HSV)
 
         hsv_values = get_hsv_values(color)
-        if position == 0:
-            final_mask = get_image_mask(hsv, hsv_values, self.vertices_1)
-        elif position == 1:
-            final_mask = get_image_mask(hsv, hsv_values, self.vertices_2)
-        else:
-            print("wrong input position")
+
+        final_mask = get_image_mask(hsv, hsv_values, vertices,show_img)
 
         contours, hierarchy = cv.findContours(final_mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
         segmented_image = cv.drawContours(bgr, contours, -1, (0, 0, 255), 1)

@@ -402,28 +402,53 @@ def move_pr2_shelf(dest_pos, ref_objects):
     __move_pr2(pr2_komo, dest_pos, vector_target, start_tau_param, incr_tau_param, ref_objects)
 
 
-def table_cam_pos():
+def table_cam_pos(show_img=False):
     kitchen_cam = CV_Perception(env, "table_camera")
+    marker_obj_pos_offset = [[0,-0.05,0.115], [0,-0.05,0.115],
+                             [0,-0.06,0.115], [0,-0.066,0.115]]
+    marker_to_table_map = {
+        "table1": [],
+        "table2": []
+    }
+    vertices_1 = np.array([[(390, 70), (600, 70), (600, 280), (390, 280)]], dtype=np.int32)
+    vertices_2 = np.array([[(30, 70), (230, 70), (230, 280), (30, 280)]], dtype=np.int32)
 
-    red_table_pos = kitchen_cam.get_target_pos(ItemColor(1), show_img=False) + [0.0231, -0.011, 0]
+    red_table_pos = kitchen_cam.get_target_pos(ItemColor(1), show_img=show_img) + [0.0231, -0.011, 0]
     red_table_pos[2] = 0
+
+    red_order_1 = kitchen_cam.get_target_pos(ItemColor(5), vertices_1, show_img) + marker_obj_pos_offset[2]
+    marker_to_table_map["table2"].append(np.array(red_order_1))
+    red_order_2 = kitchen_cam.get_target_pos(ItemColor(6), vertices_1, show_img) + marker_obj_pos_offset[3]
+    marker_to_table_map["table2"].append(np.array(red_order_2))
 
     print("red table", red_table_pos)
     print(env.get_position("coffe_table"))
 
-    green_table_pos = kitchen_cam.get_target_pos(ItemColor(2), show_img=False) + [0, -0.01, 0]
+    green_table_pos = kitchen_cam.get_target_pos(ItemColor(2), show_img=show_img) + [0, -0.01, 0]
     ## offset [0.82, -0.95, 0]
     green_table_pos[2] = 0
+
+
+    green_order_1 = kitchen_cam.get_target_pos(ItemColor(5), vertices_2, show_img) + marker_obj_pos_offset[0]
+    marker_to_table_map["table1"].append(np.array(green_order_1))
+    green_order_2 = kitchen_cam.get_target_pos(ItemColor(6), vertices_2, show_img) + marker_obj_pos_offset[1]
+    marker_to_table_map["table1"].append(np.array(green_order_2))
 
     print("green table", green_table_pos)
     print(env.get_position("coffe_table_1"))
 
-    return np.array(red_table_pos), np.array(green_table_pos)
+    return np.array(red_table_pos), np.array(green_table_pos), marker_to_table_map
 
 
 def get_kitchen_cam_pos(order, position, offset):
     kitchen_cam = CV_Perception(env, "kitchen_camera")
-    order_pos = kitchen_cam.get_target_pos(ItemColor(order.value), position)
+
+    if position == 0:
+        vertices = np.array([[(325, 260), (280, 55), (350, 55), (530, 260)]], dtype=np.int32)
+    elif position == 1:
+        vertices = np.array([[(120, 260), (180, 55), (280, 55), (325, 260)]], dtype=np.int32)
+
+    order_pos = kitchen_cam.get_target_pos(ItemColor(order.value), vertices)
 
     if order_pos != []:
         order_pos += offset
@@ -458,10 +483,10 @@ if __name__ == '__main__':
                         Items.Cola: cola_list
                         }
 
-    dining_table_to_location_map = {
-        "table1": [np.array([-1.2, -1, 0.639]), np.array([-1., -1.05, 0.639])],
-        "table2": [np.array([-1.2, 0.7, 0.639]), np.array([-1., 0.65, 0.639])]
-    }
+    #dining_table_to_location_map = {
+        #"table1": [np.array([-1.2, -1, 0.639]), np.array([-1., -1.05, 0.639])],
+        #"table2": [np.array([-1.2, 0.7, 0.639]), np.array([-1., 0.65, 0.639])]
+    #}
 
     # create environment
 
@@ -471,13 +496,14 @@ if __name__ == '__main__':
     # receive order
     user_ip = True
     if user_ip:
-        percept_red_table_pos, percept_green_table_pos = table_cam_pos()
-        percept_red_table_pos_offset = percept_red_table_pos + [0.75, -0.25, 0]
-        percept_green_table_pos_offset = percept_green_table_pos + [0.82, -0.95, 0]
+        percept_red_table_pos, percept_green_table_pos, dining_table_to_location_map = table_cam_pos(False)
+
+        percept_red_table_pos_offset = percept_red_table_pos + [0.746, -0.259, 0]
+        percept_green_table_pos_offset = percept_green_table_pos + [0.817, -0.956, 0]
     else:
         percept_green_table_pos_offset = np.array([-0.18, -1.8, 0])
         percept_red_table_pos_offset = np.array([-0.25, 0.6, 0])
-
+    print(dining_table_to_location_map)
 
     # get gui order
     table_1, table_2 = gui.get_order()
@@ -527,7 +553,7 @@ if __name__ == '__main__':
 
         cv.destroyAllWindows()
         current_serving_objects = []
-
+        exit()
         # Grab from shelf and place it in the Tray
         for table_id, target_object, obj_position in Full_Order_Details:
             print(table_id, target_object, obj_position)
