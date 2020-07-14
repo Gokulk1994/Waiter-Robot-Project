@@ -418,7 +418,7 @@ def table_cam_pos(show_img=False):
 
     red_order_1 = kitchen_cam.get_target_pos(ItemColor(5), vertices_1, show_img) + marker_obj_pos_offset[2]
     marker_to_table_map["table2"].append(np.array(red_order_1))
-    red_order_2 = kitchen_cam.get_target_pos(ItemColor(6), vertices_1, show_img) + marker_obj_pos_offset[3]
+    red_order_2 = kitchen_cam.get_target_pos(ItemColor(3), vertices_1, show_img) + marker_obj_pos_offset[3]
     marker_to_table_map["table2"].append(np.array(red_order_2))
 
     print("red table", red_table_pos)
@@ -431,7 +431,7 @@ def table_cam_pos(show_img=False):
 
     green_order_1 = kitchen_cam.get_target_pos(ItemColor(5), vertices_2, show_img) + marker_obj_pos_offset[0]
     marker_to_table_map["table1"].append(np.array(green_order_1))
-    green_order_2 = kitchen_cam.get_target_pos(ItemColor(6), vertices_2, show_img) + marker_obj_pos_offset[1]
+    green_order_2 = kitchen_cam.get_target_pos(ItemColor(3), vertices_2, show_img) + marker_obj_pos_offset[1]
     marker_to_table_map["table1"].append(np.array(green_order_2))
 
     print("green table", green_table_pos)
@@ -440,7 +440,7 @@ def table_cam_pos(show_img=False):
     return np.array(red_table_pos), np.array(green_table_pos), marker_to_table_map
 
 
-def get_kitchen_cam_pos(order, position, offset):
+def get_kitchen_cam_pos(order, position, offset, show_img=False):
     kitchen_cam = CV_Perception(env, "kitchen_camera")
 
     if position == 0:
@@ -448,7 +448,7 @@ def get_kitchen_cam_pos(order, position, offset):
     elif position == 1:
         vertices = np.array([[(120, 260), (180, 55), (280, 55), (325, 260)]], dtype=np.int32)
 
-    order_pos = kitchen_cam.get_target_pos(ItemColor(order.value), vertices)
+    order_pos = kitchen_cam.get_target_pos(ItemColor(order.value), vertices, show_img)
 
     if order_pos != []:
         order_pos += offset
@@ -472,15 +472,18 @@ def teleport_obj(object_frame, position):
 [initial_base_pos, J] = C.evalFeature(ry.FS.position, ["base_footprint"])
 
 if __name__ == '__main__':
+
+    show_img = True
+
     state = State.Load_env
 
     coffe_list = ["dyna_coffee_1", "dyna_coffee_2", "dyna_coffee_3"]
     sprite_list = ["sprite_1", "sprite_2", "sprite_3"]
-    cola_list = ["cola_1", "cola_2", "cola_3"]
+    juice_list = ["juice_1", "juice_2", "juice_3"]
 
     item_to_list_map = {Items.Coffee: coffe_list,
                         Items.Sprite: sprite_list,
-                        Items.Cola: cola_list
+                        Items.Juice: juice_list
                         }
 
     #dining_table_to_location_map = {
@@ -496,7 +499,7 @@ if __name__ == '__main__':
     # receive order
     user_ip = True
     if user_ip:
-        percept_red_table_pos, percept_green_table_pos, dining_table_to_location_map = table_cam_pos(False)
+        percept_red_table_pos, percept_green_table_pos, dining_table_to_location_map = table_cam_pos(show_img)
 
         percept_red_table_pos_offset = percept_red_table_pos + [0.746, -0.259, 0]
         percept_green_table_pos_offset = percept_green_table_pos + [0.817, -0.956, 0]
@@ -547,13 +550,13 @@ if __name__ == '__main__':
             print("Real world pos of ", order, " is : ", order_pos)
 
             run_empty_steps(env.S, num_iter=20, tau=0.001)
-            obj_pos = get_kitchen_cam_pos(item[1], i, camera_offset[i])
+            obj_pos = get_kitchen_cam_pos(item[1], i, camera_offset[i],show_img)
             print("Camera pos of ", order, " is : ", obj_pos)
             Full_Order_Details.append([item[0], order, obj_pos])
 
         cv.destroyAllWindows()
         current_serving_objects = []
-        exit()
+
         # Grab from shelf and place it in the Tray
         for table_id, target_object, obj_position in Full_Order_Details:
             print(table_id, target_object, obj_position)

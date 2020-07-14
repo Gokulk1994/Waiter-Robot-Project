@@ -15,7 +15,7 @@ class GuiInput:
 
         self.orders = [None, [], []]
 
-        self.items = ["Coffee", "Sprite", "Cola"]
+        self.items = ["Coffee", "Sprite", "Juice"]
 
         self.table = 0
         self.table_order_state = [False, False, False]
@@ -34,8 +34,8 @@ class GuiInput:
                              state=tk.DISABLED)
         self.sprite.grid(row=4, column=0, padx=pad_x, pady=pad_y)
 
-        self.cola = Button(self.master, text="Cola", command=self.choose_cola, width=30, height=2, state=tk.DISABLED)
-        self.cola.grid(row=5, column=0, padx=pad_x, pady=pad_y)
+        self.juice = Button(self.master, text="Mango Juice", command=self.choose_juice, width=30, height=2, state=tk.DISABLED)
+        self.juice.grid(row=5, column=0, padx=pad_x, pady=pad_y)
 
         self.order_button = Button(self.master, text="Order", command=self.order_done, width=30, height=2,
                                    state=tk.DISABLED)
@@ -62,7 +62,7 @@ class GuiInput:
 
         self.coffee['state'] = tk.NORMAL
         self.sprite['state'] = tk.NORMAL
-        self.cola['state'] = tk.NORMAL
+        self.juice['state'] = tk.NORMAL
 
     def choose_table_2(self):
         self.table = 2
@@ -74,7 +74,7 @@ class GuiInput:
 
         self.coffee['state'] = tk.NORMAL
         self.sprite['state'] = tk.NORMAL
-        self.cola['state'] = tk.NORMAL
+        self.juice['state'] = tk.NORMAL
 
     def add_message(self, message):
         self.display.insert(tk.END, message)
@@ -89,9 +89,9 @@ class GuiInput:
         self.sprite['state'] = tk.DISABLED
         self.order_button['state'] = tk.NORMAL
 
-    def choose_cola(self):
-        self.orders[self.table].append(Items.Cola)
-        self.cola['state'] = tk.DISABLED
+    def choose_juice(self):
+        self.orders[self.table].append(Items.Juice)
+        self.juice['state'] = tk.DISABLED
         self.order_button['state'] = tk.NORMAL
 
     def show_order(self, table_num):
@@ -128,7 +128,7 @@ class GuiInput:
 
         self.coffee['state'] = tk.DISABLED
         self.sprite['state'] = tk.DISABLED
-        self.cola['state'] = tk.DISABLED
+        self.juice['state'] = tk.DISABLED
 
         self.order_button['state'] = tk.DISABLED
         self.confirm_button['state'] = tk.DISABLED
