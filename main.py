@@ -92,8 +92,8 @@ def __grab_and_place(komo_op, object_name, object_pos, dest_pos, gripper_name, g
         q = S.get_q()
         p_glass = sim_glass.getPosition()
         r_glass = sim_glass.getQuaternion()
-        config_glass.setPosition(p_glass)
-        config_glass.setQuaternion(r_glass)
+        #config_glass.setPosition(p_glass)
+        #config_glass.setQuaternion(r_glass)
 
         if t % 10 == 0:
             [rgb, depth] = S.getImageAndDepth()
@@ -202,6 +202,7 @@ def grab_from_green_arm(object_name, obj_pos, table_pos):
 
     sim_glass = RealWorld.frame(object_name)
     # obj_pos = sim_glass.getPosition()
+    S.selectSensor("table_camera")
     obj_pos = obj_pos + [0, -0.07, 0]
 
     green_gripper_komo = KomoOperations(env.C)
@@ -226,6 +227,7 @@ def grab_from_red_arm(object_name, obj_pos, table_pos):
 
     sim_glass = RealWorld.frame(object_name)
     # obj_pos = sim_glass.getPosition()
+    S.selectSensor("table_camera")
     obj_pos = obj_pos + [0, -0.07, 0]
 
     green_gripper_komo = KomoOperations(env.C)
@@ -257,7 +259,7 @@ def __move_back(komo_op, position_steps, reference_object, offset, gripper_cente
                                                       5, vector_target, fingers_opt)
             komo.optimize()
             for i in range(position_steps):
-                time.sleep(2)
+                time.sleep(0.1)
                 print(i)
                 C.setFrameState(komo.getConfiguration(i))
                 q = C.getJointState()
@@ -404,8 +406,8 @@ def move_pr2_shelf(dest_pos, ref_objects):
 
 def table_cam_pos(show_img=False):
     kitchen_cam = CV_Perception(env, "table_camera")
-    marker_obj_pos_offset = [[0,-0.05,0.115], [0,-0.05,0.115],
-                             [0,-0.06,0.115], [0,-0.066,0.115]]
+    marker_obj_pos_offset = [[0, -0.05, 0.118], [0, -0.05, 0.118],
+                             [0, -0.06, 0.118], [0, -0.066, 0.118]]
     marker_to_table_map = {
         "table1": [],
         "table2": []
@@ -427,7 +429,6 @@ def table_cam_pos(show_img=False):
     green_table_pos = kitchen_cam.get_target_pos(ItemColor(2), show_img=show_img) + [0, -0.01, 0]
     ## offset [0.82, -0.95, 0]
     green_table_pos[2] = 0
-
 
     green_order_1 = kitchen_cam.get_target_pos(ItemColor(5), vertices_2, show_img) + marker_obj_pos_offset[0]
     marker_to_table_map["table1"].append(np.array(green_order_1))
@@ -462,11 +463,11 @@ def teleport_obj(object_frame, position):
     frame.setPosition(position)
     frame.setContact(1)
     S.setState(RealWorld.getFrameState())
-    S.step([], 0.001, ry.ControlMode.none)
+    S.step([], 0.005, ry.ControlMode.none)
     p_glass = frame.getPosition()
     r_glass = frame.getQuaternion()
-    c_frame.setPosition(p_glass)
-    c_frame.setQuaternion(r_glass)
+    #c_frame.setPosition(p_glass)
+    #c_frame.setQuaternion(r_glass)
 
 
 [initial_base_pos, J] = C.evalFeature(ry.FS.position, ["base_footprint"])
@@ -516,7 +517,7 @@ if __name__ == '__main__':
     item_stack = []
 
     object_pos_in_shelf = [np.array([1.4, 2.5, 0.63]), np.array([1.6, 2.8, 0.6])]  # calculate using shelf position
-    camera_offset = [[0.067, 0, -0.013], [0.0477, 0.0065, -0.0312]]
+    camera_offset = [[0.045, 0, -0.013], [0.0477, 0.0065, -0.0312]]
 
     # Create item stack from both table orders
     for order_1, order_2 in zip(table_1, table_2):
@@ -544,13 +545,15 @@ if __name__ == '__main__':
         for i, item in enumerate(process_list):
             order = item_to_list_map[item[1]].pop(0)
             target_name_list.append([item[0], order])
-            teleport_obj(order, object_pos_in_shelf[i])
-
+            if item[1] == Items.Coffee and i == 1:
+                teleport_obj(order, object_pos_in_shelf[i] + [0, 0, 0.03])
+            else:
+                teleport_obj(order, object_pos_in_shelf[i])
             order_pos = RealWorld.frame(order).getPosition()
             print("Real world pos of ", order, " is : ", order_pos)
 
             run_empty_steps(env.S, num_iter=20, tau=0.001)
-            obj_pos = get_kitchen_cam_pos(item[1], i, camera_offset[i],show_img)
+            obj_pos = get_kitchen_cam_pos(item[1], i, camera_offset[i], show_img)
             print("Camera pos of ", order, " is : ", obj_pos)
             Full_Order_Details.append([item[0], order, obj_pos])
 
@@ -587,6 +590,7 @@ if __name__ == '__main__':
             sim_glass = RealWorld.frame(target_object)
             object_pos = sim_glass.getPosition()
             print("grasping and placing order in table 1")
+            #widen_gripper("1_gripper")
             grab_from_green_arm(target_object, object_pos, target_pos)
 
         elif order_to_table[0] == "table2":
@@ -654,6 +658,8 @@ if __name__ == '__main__':
         [end_base_pos, J] = C.evalFeature(ry.FS.position, ["base_footprint"])
         print("*** end base pos", end_base_pos)
         served_objects += current_serving_objects
+        camera_offset[0][0] = camera_offset[0][0] - 0.028
+        #widen_gripper("R_gripper")
         print("Moved back to origin")
         print("-----------------------------------------------")
 

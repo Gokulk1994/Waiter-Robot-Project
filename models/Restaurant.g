@@ -12,17 +12,17 @@ tray (base_footprint){shape:box, size:[0.5, 0.7,0.05],, mass:1.0 X:<[0.63, 0.0, 
 
 Edit worldTranslationRotation { Q:<t(2.2 1.3 0.05) d(90 0 0 1)> gains=[1 1] ctrl_limits=[1 1 1] ctrl_H=10 base }
 
-sprite_1 {  shape:cylinder, size:[0.22, 0.07],, mass:100.0 X:<[4.1, 3.3, 0.6, -7.41170883e-01, -2.67996453e-04, 1.97769841e-05,  6.71316564e-01]>, color:[0,1,0], friction:10.0 }
+sprite_1 {  shape:cylinder, size:[0.22, 0.07],, contact, mass:100.0 X:<[4.1, 3.3, 0.6, -7.41170883e-01, -2.67996453e-04, 1.97769841e-05,  6.71316564e-01]>, color:[0,1,0], friction:10.0 }
 
-sprite_2 {  shape:cylinder, size:[0.22, 0.07],, mass:100.0 X:<[4.1, 3.6, 0.6, -7.41170883e-01, -2.67996453e-04, 1.97769841e-05,  6.71316564e-01]>, color:[0,1,0], friction:10.0 }
+sprite_2 {  shape:cylinder, size:[0.22, 0.07],,contact, mass:100.0 X:<[4.1, 3.6, 0.6, -7.41170883e-01, -2.67996453e-04, 1.97769841e-05,  6.71316564e-01]>, color:[0,1,0], friction:10.0 }
 
-sprite_3 {  shape:cylinder, size:[0.22, 0.07],, mass:100.0 X:<[4.1, 3.9, 0.6, -7.41170883e-01, -2.67996453e-04, 1.97769841e-05,  6.71316564e-01]>, color:[0,1,0], friction:10.0 }
+sprite_3 {  shape:cylinder, size:[0.22, 0.07],,contact, mass:100.0 X:<[4.1, 3.9, 0.6, -7.41170883e-01, -2.67996453e-04, 1.97769841e-05,  6.71316564e-01]>, color:[0,1,0], friction:10.0 }
 
-juice_1 { shape:ssBox, size:[0.12, 0.12, 0.23, 0.02],,mass:100.0 X:<[4.3, 3.3, 0.6, -7.41170883e-01, -2.67996453e-04, 1.97769841e-05,  6.71316564e-01]>, color:[1,1,0], friction:10.0}
+juice_1 { shape:ssBox, size:[0.12, 0.12, 0.23, 0.02],,contact,mass:100.0 X:<[4.3, 3.3, 0.6, -7.41170883e-01, -2.67996453e-04, 1.97769841e-05,  6.71316564e-01]>, color:[1,1,0], friction:10.0}
 
-juice_2 { shape:ssBox, size:[0.12, 0.12, 0.23, 0.02],,mass:100.0 X:<[4.3, 3.6, 0.6, -7.41170883e-01, -2.67996453e-04, 1.97769841e-05,  6.71316564e-01]>, color:[1,1,0], friction:10.0}
+juice_2 { shape:ssBox, size:[0.12, 0.12, 0.23, 0.02],,contact,mass:100.0 X:<[4.3, 3.6, 0.6, -7.41170883e-01, -2.67996453e-04, 1.97769841e-05,  6.71316564e-01]>, color:[1,1,0], friction:10.0}
 
-juice_3 { shape:ssBox, size:[0.12, 0.12, 0.23, 0.02],,mass:100.0 X:<[4.3, 3.9, 0.6, -7.41170883e-01, -2.67996453e-04, 1.97769841e-05,  6.71316564e-01]>, color:[1,1,0], friction:10.0}
+juice_3 { shape:ssBox, size:[0.12, 0.12, 0.23, 0.02],,contact,mass:100.0 X:<[4.3, 3.9, 0.6, -7.41170883e-01, -2.67996453e-04, 1.97769841e-05,  6.71316564e-01]>, color:[1,1,0], friction:10.0}
 
 #cola_1 {  shape:cylinder, size:[0.22, 0.07],, mass:100.0 X:<[1.6, 3.3, 0.6, -7.41170883e-01, -2.67996453e-04, 1.97769841e-05,  6.71316564e-01]>, color:[0,0,0], friction:10.0 }
 
@@ -36,7 +36,7 @@ dyna_coffee_1 {
     X:<t(3.9 3.3 0.63) d(90 1 0 0)>,,   #absolute pose: translation by (0,0,1)
     color:[1 0 0],
     mesh:'mug.dae',
-    #contact:1,
+    contact,
     meshscale: 2.2,
     friction:10.0
 }
@@ -46,7 +46,7 @@ dyna_coffee_2 {
     X:<t(3.9 3.6 0.63) d(90 1 0 0)>,,   #absolute pose: translation by (0,0,1)
     color:[1 0 0],
     mesh:'mug.dae',
-    #contact:1,
+    contact,
     meshscale: 2.2,
     friction:10.0
 }
@@ -56,7 +56,7 @@ dyna_coffee_3 {
     X:<t(3.9 3.9 0.63) d(90 1 0 0)>,,   #absolute pose: translation by (0,0,1)
     color:[1 0 0],
     mesh:'mug.dae',
-    #contact:1,
+    contact,
     meshscale: 2.2,
     friction:10.0
 }

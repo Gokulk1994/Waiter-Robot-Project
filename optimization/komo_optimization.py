@@ -33,8 +33,6 @@ class KomoOperations:
         komo = self.C.komo_path(1., position_steps, tau, True)
         komo.clearObjectives()
         komo.addObjective([], ry.FS.accumulatedCollisions, [], ry.OT.eq)
-        #komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq)
-
         return komo
 
     def immobilize_pr2(self, komo):
@@ -55,7 +53,6 @@ class KomoOperations:
     def move_to_position(self, gripper, target_position, offsets, vector_target=None,
                          fingers_opt=None, no_time_step=True):
         print("Komo call: move to position")
-        #komo = self.get_default_komo()
 
         if no_time_step:
             komo = self.get_default_komo(position_steps=1, tau=0.015)
@@ -72,15 +69,11 @@ class KomoOperations:
                 komo.addObjective([], self.vectors[i], [gripper], ry.OT.eq, [1e3], target=target_vec)
 
         komo.addObjective(time=[1.], feature=ry.FS.qItself, type=ry.OT.eq, order=1)
-        # komo.addObjective(time=[], feature=ry.FS.qItself,
-        #                   frames=["R_panda_joint7"],
-        #                   type=ry.OT.eq, order=1,
-        #                   target=[0.01]*1)
-
 
         if fingers_opt is not None:
             for finger in fingers_opt:
-                komo.addObjective([], ry.FS.qItself, [finger], ry.OT.eq, [1e1], order=1)
+                komo.addObjective([], ry.FS.qItself, [finger], ry.OT.eq, [1e2], order=1)
+
         komo_final = self.immobilize_pr2(komo)
         return komo_final
 
@@ -107,6 +100,16 @@ class KomoOperations:
         komo_final = self.immobilize_pr2(komo)
         print("komo opt time ", (time.time() - start_time))
         return komo_final
+
+    def move_back_position_orig(self, start_qItself, position_steps):
+        print("Komo call: move gripper original position")
+
+        komo = self.get_default_komo(position_steps)
+        komo.addObjective(time=[], feature=ry.FS.qItself, type=ry.OT.eq, target=start_qItself)
+        komo.addObjective(time=[1.], feature=ry.FS.qItself, type=ry.OT.eq, order=1)
+        komo_final = self.immobilize_pr2(komo)
+        return komo_final
+
 
     def move_pr2_position(self, target_pos, vector_target, start_komo_tau=0.001):
         komo = self.get_default_komo(position_steps=1, tau=start_komo_tau)
