@@ -1,10 +1,10 @@
-# Practial Robotics course by Machine Learning and Robotics Lab, University of Stuttgart
+## Practial Robotics course by Machine Learning and Robotics Lab, University of Stuttgart
 
 # Project Title : Waiter-Robot-Project
 
 Waiter robot implementation as a part of the Robotics practical course.
 
-##Team members : Gokul Kannan and Vijay Kumar, University of Stuttgart
+## Team members : Gokul Kannan and Vijay Kumar, University of Stuttgart
 
 Execution of Project:
 
