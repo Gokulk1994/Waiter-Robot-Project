@@ -49,7 +49,6 @@ class KomoOperations:
         komo.addObjective([], ry.FS.qItself, [finger2], ry.OT.eq, [1e1], order=1)
         return komo
 
-
     def move_to_position(self, gripper, target_position, offsets, vector_target=None,
                          fingers_opt=None, no_time_step=True):
         print("Komo call: move to position")

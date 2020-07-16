@@ -369,8 +369,9 @@ def move_pr2_table(dest_pos, ref_objects):
                      [0, -1, 0],
                      ["None"]]
     start_tau_param = 0.00001
-    # start_tau_param = 0.001
     incr_tau_param = 0.0000005
+    # start_tau_param = 0.001
+    # incr_tau_param = 0
     pr2_komo = KomoOperations(env.C)
     __move_pr2(pr2_komo, dest_pos, vector_target, start_tau_param, incr_tau_param, ref_objects)
 
