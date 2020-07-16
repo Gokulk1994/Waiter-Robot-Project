@@ -112,7 +112,6 @@ class KomoOperations:
 
     def move_pr2_position(self, target_pos, vector_target, start_komo_tau=0.001):
         komo = self.get_default_komo(position_steps=1, tau=start_komo_tau)
-        #komo.addObjective([], ry.FS.jointLimits, [], ry.OT.ineq)
         komo.addObjective(time=[], feature=ry.FS.qItself, type=ry.OT.eq, order=1)
         komo.addObjective([], ry.FS.qItself, ["torso_lift_joint"], type=ry.OT.eq, order=1)
         komo.addObjective([], ry.FS.position, ['base_footprint'], ry.OT.eq, [1e2], target=target_pos)
